@@ -5,7 +5,7 @@
 #include <unistd.h>
 #include "shellcode.h"
 
-#define TARGET "/srv/target0"
+#define TARGET "/tmp/target0"
 
 int main(void)
 {
