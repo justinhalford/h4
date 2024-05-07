@@ -35,7 +35,7 @@ int main(void)
         return_address_ptr += 4;
     }
 
-    // Null-terminate the exploit string
+    // Null-terminate the exploit  string
     buf[OFFSET] = '\0';
 
     // Set up the arguments for execve
