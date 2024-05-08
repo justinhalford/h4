@@ -26,6 +26,10 @@ int main(void)
 
     env[0] = NULL;
 
+    for (int i = 0; i < sizeof(exploit); i++)
+        printf("\\x%02x", (unsigned char)exploit[i]);
+    printf("\n");
+
     execve(TARGET, args, env);
     fprintf(stderr, "execve failed.\n");
 
