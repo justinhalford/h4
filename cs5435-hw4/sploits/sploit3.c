@@ -24,13 +24,7 @@ void prepEnv(char *e) {
 }
 
 int main(void) {
-    char *args[3]; 
-    char *env[1];
-    
-    args[0] = TARGET;
-    args[1] = buf;
-    args[2] = NULL;
-
+    char *args[] = {TARGET, buf, NULL};
     char env[ENV_SIZE];
 
     prepEnv(env);
