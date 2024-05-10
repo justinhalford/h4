@@ -23,7 +23,7 @@ environment[ENV_SIZE - 1] = '\0';
 int main(void) {
 char *arguments[] = {TARGET, (char *)Padding, NULL};
 char environment[ENV_SIZE];
-Copy codeprepareEnvironment(environment);
+prepareEnvironment(environment);
 
 char *env[] = {environment, NULL};
 
