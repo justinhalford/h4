@@ -17,7 +17,7 @@ int main(void)
 
   
   args[0] = TARGET;
-  args[1] = SLED SYS EX SH;
+  args[1] = SLED + SYS + EX + SH;
   args[2] = NULL;
 
   env[0] = NULL;
