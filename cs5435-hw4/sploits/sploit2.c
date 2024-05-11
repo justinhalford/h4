@@ -22,21 +22,12 @@ void prep(char *buf) {
     buf[BSIZE - 1] = '\0';
 }
 
-int main(void)
-{
-    char *args[4];
-    char *env[1];
+int main(void) {
     char buf[BSIZE];
+    char *args[4] = {TARGET, buf, "65935", NULL};
+    char *env[1] = {NULL};
 
     prep(buf);
-
-    args[0] = TARGET;
-    args[1] = buf;
-    args[2] = "65935";
-    args[3] = NULL;
-
-    env[0] = NULL;
-
     execve(TARGET, args, env);
     fprintf(stderr, "execve failed.\n");
 

