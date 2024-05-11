@@ -32,7 +32,7 @@ int main(void)
 
     args[0] = TARGET;
     args[1] = buf;
-    args[2] = "10001";
+    args[2] = "65935";
     args[3] = NULL;
 
     env[0] = NULL;
