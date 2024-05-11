@@ -31,8 +31,5 @@ int main(void)
     execve(TARGET, args, env);
     fprintf(stderr, "execve failed.\n");
 
-    // Free the allocated memory
-    free(args[1]);
-
     return 0;
 }
