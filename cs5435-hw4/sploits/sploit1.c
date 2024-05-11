@@ -5,7 +5,7 @@
 #include <unistd.h>
 #include "shellcode.h"
 
-const char* TARGET = "/srv/target1";
+#define TARGET "/srv/target1"
 
 const int BSIZE = 16;
 const int SHSIZE = sizeof(shellcode) - 1;

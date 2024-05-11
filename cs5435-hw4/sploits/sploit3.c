@@ -5,7 +5,7 @@
 #include <unistd.h>
 #include "shellcode.h"
 
-const char* TARGET = "/srv/target3";
+#define TARGET "/srv/target3"
 
 const int ESIZE = 400;
 const uint32_t BASE = 0xffffdec0;

