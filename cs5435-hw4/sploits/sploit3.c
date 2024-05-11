@@ -34,15 +34,14 @@ void prepE(char *e) {
 
 int main(void) {
     char *buf = prepB();
-    char *args[] = {TARGET, buf, NULL};
     char env[ESIZE];
-
-    prepE(env);
-
+    char *args[] = {TARGET, buf, NULL};
     char *envp[] = {env};
 
+    prepE(env);
     execve(TARGET, args, envp);
     fprintf(stderr, "execve failed.\n");
 
     return 0;
 }
+

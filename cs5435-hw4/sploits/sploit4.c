@@ -20,9 +20,8 @@ int main() {
     char *args[3] = {(char*)TARGET, prepB(), NULL};
     char *env[1] = {NULL};
 
-    if (execve(TARGET, args, env) == -1) {
-        perror("execve failed");
-    }
+    execve(TARGET, args, env);
+    fprintf(stderr, "execve failed.\n");
 
     return 0;
 }
